@@ -22,6 +22,6 @@
 # THE SOFTWARE.
 
 
-from timecode import Timecode, TimecodeError
+from .timecode import Timecode, TimecodeError
 
 __version__ = '0.3.1'

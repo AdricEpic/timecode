@@ -209,20 +209,20 @@ class TimecodeTester(unittest.TestCase):
         True
         """
         tc = Timecode('29.97')
-        self.assertTrue(tc.drop_frame)
+        self.assertTrue(tc.framerate.isDropFrame)
 
         tc = Timecode('29.97')
-        self.assertTrue(tc.drop_frame)
+        self.assertTrue(tc.framerate.isDropFrame)
 
     def test_setting_frame_rate_to_5994_forces_drop_frame(self):
         """testing if setting the frame rate to 59.94 forces the dropframe to
         True
         """
         tc = Timecode('59.94')
-        self.assertTrue(tc.drop_frame)
+        self.assertTrue(tc.framerate.isDropFrame)
 
         tc = Timecode('59.94')
-        self.assertTrue(tc.drop_frame)
+        self.assertTrue(tc.framerate.isDropFrame)
 
     def test_iteration(self):
         t = None
@@ -508,11 +508,11 @@ class TimecodeTester(unittest.TestCase):
         in 29.97 fps
         """
         tc = Timecode('29.97', '00:00:00:21')
-        self.assertTrue(tc.drop_frame)
+        self.assertTrue(tc.framerate.isDropFrame)
         self.assertEqual(22, tc.frames)
 
         tc2 = Timecode('29.97', '23:59:59:29')
-        self.assertTrue(tc2.drop_frame)
+        self.assertTrue(tc2.framerate.isDropFrame)
         self.assertEqual(2589408, tc2.frames)
 
         self.assertEqual(

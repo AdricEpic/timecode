@@ -21,6 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from framerate import Framerate
+
 
 class Timecode(object):
     def __init__(self, framerate, start_timecode=None, start_seconds=None,
@@ -31,11 +33,10 @@ class Timecode(object):
         frames, then when required it converts the frames to a timecode by
         using the frame rate setting.
 
-        :param str framerate: The frame rate of the Timecode instance. It
-          should be one of ['23.98', '24', '25', '29.97', '30', '50', '59.94',
-          '60', 'ms'] where "ms" equals to 1000 fps. Can not be skipped.
-          Setting the framerate will automatically set the :attr:`.drop_frame`
-          attribute to correct value.
+        :param basestring, int, float, Framerate framerate: The frame rate of
+          the Timecode instance. It will be converted to a Framerate object
+          if it is not one already. Required. Raises FramerateError if value
+          is invalid.
         :param start_timecode: The start timecode. Use this to be able to
           set the timecode of this Timecode instance. It can be skipped and
           then the frames attribute will define the timecode, and if it is also
@@ -47,9 +48,11 @@ class Timecode(object):
         :param int frames: Timecode objects can be initialized with an
           integer number showing the total frames.
         """
-        self.drop_frame = False
-        self.int_framerate = -1
-        self.framerate = self._validate_framerate(framerate)
+        if isinstance(framerate, Framerate):
+            self._framerate = framerate
+        else:
+            # NOTE: This will raise a FramerateError if framerate is invalid
+            self._framerate = Framerate(framerate)
 
         self.frames = None
 
@@ -66,27 +69,6 @@ class Timecode(object):
                 # use default value of 00:00:00:00
                 self.frames = self.tc_to_frames('00:00:00:00')
 
-    def _validate_framerate(self, framerate):
-        """validates the given framerate value
-        """
-        # set the int_frame_rate
-        if framerate == '29.97':
-            self.int_framerate = 30
-            self.drop_frame = True
-        elif framerate == '59.94':
-            self.int_framerate = 60
-            self.drop_frame = True
-        elif framerate == '23.98':
-            self.int_framerate = 24
-        elif framerate == 'ms':
-            self.int_framerate = 1000
-            framerate = 1000
-        elif framerate == 'frames':
-            self.int_framerate = 1
-        else:
-            self.int_framerate = int(framerate)
-        return framerate
-
     def set_timecode(self, timecode):
         """Sets the frames by using the given timecode
         """
@@ -95,16 +77,16 @@ class Timecode(object):
     def float_to_tc(self, seconds):
         """set the frames by using the given seconds
         """
-        return int(seconds * self.int_framerate)
+        return int(seconds * int(self.framerate))
 
     def tc_to_frames(self, timecode):
         """Converts the given timecode to frames
         """
         hours, minutes, seconds, frames = map(int, timecode.split(':'))
 
-        ffps = float(self.framerate)
+        ffps = float(self._framerate)
 
-        if self.drop_frame:
+        if self.framerate.isDropFrame:
             # Number of drop frames is 6% of framerate rounded to nearest
             # integer
             drop_frames = int(round(ffps * .066666))
@@ -113,7 +95,7 @@ class Timecode(object):
 
         # We don't need the exact framerate anymore, we just need it rounded to
         # nearest integer
-        ifps = self.int_framerate
+        ifps = int(self.framerate)
 
         # Number of frames per hour (non-drop)
         hour_frames = ifps * 60 * 60
@@ -138,9 +120,9 @@ class Timecode(object):
 
         :returns str: the string representation of the current time code
         """
-        ffps = float(self.framerate)
+        ffps = float(self._framerate)
 
-        if self.drop_frame:
+        if self.framerate.isDropFrame:
             # Number of frames to drop on the minute marks is the nearest
             # integer to 6% of the framerate
             drop_frames = int(round(ffps * .066666))
@@ -167,7 +149,7 @@ class Timecode(object):
         # clock
         frame_number %= frames_per_24_hours
 
-        if self.drop_frame:
+        if self.framerate.isDropFrame:
             d = frame_number // frames_per_10_minutes
             m = frame_number % frames_per_10_minutes
             if m > drop_frames:
@@ -176,7 +158,7 @@ class Timecode(object):
             else:
                 frame_number += drop_frames * 9 * d
 
-        ifps = self.int_framerate
+        ifps = int(self.framerate)
         frs = frame_number % ifps
         secs = (frame_number // ifps) % 60
         mins = ((frame_number // ifps) // 60) % 60
@@ -230,7 +212,7 @@ class Timecode(object):
         """the overridden equality operator
         """
         if isinstance(other, Timecode):
-            return self.framerate == other.framerate and \
+            return self._framerate == other.framerate and \
                 self.frames == other.frames
         elif isinstance(other, str):
             new_tc = Timecode(self.framerate, other)
@@ -328,6 +310,10 @@ class Timecode(object):
         """returns the 0 based frame number of the current timecode instance
         """
         return self.frames - 1
+
+    @property
+    def framerate(self):
+        return self._framerate
 
 
 class TimecodeError(Exception):

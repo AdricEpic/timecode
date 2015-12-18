@@ -6,8 +6,9 @@ from timecode.framerate import Framerate, FramerateError
 
 class FramerateTests(unittest.TestCase):
     # Timecodes
-    NTSC_NDF_rates = ['24', '30', '60']
-    NTSC_DF_rates = ['23.98', '29.97', '59.94']
+    NTSC_NDF_rates = ['30', '60']
+    NTSC_DF_rates = ['29.97', '59.94']
+    NTSC_P_rates = ['24', '23.98']
     PAL_rates = ['25', '50']
     misc_rates = {"ms": 1000, "frames": 1}
 
@@ -87,7 +88,7 @@ class FramerateTests(unittest.TestCase):
             if number_rate in self.NTSC_DF_rates:
                 self.assertEqual(int(fr), int(round(float(fr))))
             else:
-                self.assertEqual(int(fr), int(number_rate))
+                self.assertEqual(int(fr), int(round(float(number_rate))))
 
         for misc_rate in self.misc_rates:
             fr = Framerate(misc_rate)
@@ -162,7 +163,7 @@ class FramerateTests(unittest.TestCase):
             fr = Framerate(rate)
             self.assertFalse(fr.isDropFrame)
 
-    def test_dropframe_rate_NTSC(self):
+    def test_dropframe_rate_NTSC_nonP(self):
         """Test NTSC rates have dropframe-equivalent rates"""
         for rate in self.NTSC_DF_rates + self.NTSC_NDF_rates:
             fr = Framerate(rate)

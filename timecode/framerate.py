@@ -1,12 +1,13 @@
 class Framerate(object):
 
-    _NTSC_NDF_rates = ['24', '30', '60']
-    _NTSC_DF_rates = ['23.98', '29.97', '59.94']
-    _NTSC_rates = _NTSC_DF_rates + _NTSC_NDF_rates
+    _NTSC_NDF_rates = ['30', '60']
+    _NTSC_DF_rates = ['29.97', '59.94']
+    _NTSC_P_rates = ['23.98', '24']  # Progressive rates. Is 24fps really NTSC?
+    _NTSC_rates = _NTSC_DF_rates + _NTSC_NDF_rates + _NTSC_P_rates
     _PAL_rates = ['25', '50']
     # Special case framerates
     _misc_rates = {'ms': '1000', 'frames': '1'}
-    _supported_framerates = _NTSC_NDF_rates + _NTSC_DF_rates + _PAL_rates + list(_misc_rates.iterkeys())
+    _supported_framerates = _NTSC_NDF_rates + _NTSC_DF_rates + _NTSC_P_rates + _PAL_rates + list(_misc_rates.iterkeys())
 
     _DF_to_NDF = dict(zip(_NTSC_DF_rates, _NTSC_NDF_rates))
     _NDF_to_DF = dict(zip(_NTSC_NDF_rates, _NTSC_DF_rates))
@@ -96,7 +97,7 @@ class Framerate(object):
         """
         # ToDo: Maybe should return None instead of raising?
         if self._framerate not in self._NTSC_rates:
-            raise FramerateError("Framerate {} is not an NTSC rate".format(self._framerate))
+            raise FramerateError("Framerate {} is not an NTSC rate with a drop-frame equivalent".format(self._framerate))
 
         return self._framerate if self._framerate in self._NTSC_DF_rates else self._NDF_to_DF[self._framerate]
 
@@ -106,7 +107,7 @@ class Framerate(object):
         Returns current framerate if already non-drop-frame or if framerate is
         PAL.
         """
-        if self._framerate in self._PAL_rates:
+        if (self._framerate in self._PAL_rates) or (self._framerate in self._NTSC_P_rates):
             return self.framerate
         elif self._framerate not in self._misc_rates:
             return self._framerate if self._framerate in self._NTSC_NDF_rates else self._DF_to_NDF[self._framerate]

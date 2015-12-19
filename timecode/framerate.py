@@ -114,6 +114,12 @@ class Framerate(object):
         else:
             return self._misc_rates[self._framerate]
 
+    @property
+    def framesDroppedPerMinute(self):
+        """Return rounded percent of frames to drop."""
+        # From dropdrame rates, dropped frames is 6% of the rate rounded to nearest integer
+        return int(round(float(self.framerate) * .066666)) if self.isDropFrame else 0
+
 
 class FramerateError(Exception):
     """Raised when an error occurs with Framerates"""

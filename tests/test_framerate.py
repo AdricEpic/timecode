@@ -181,3 +181,14 @@ class FramerateTests(unittest.TestCase):
         for rate in self.PAL_rates + list(self.misc_rates.iterkeys()):
             fr = Framerate(rate)
             self.assertRaises(FramerateError, get_property, fr)
+
+    def test_frames_dropped_per_min(self):
+        fr_DF_30 = Framerate(29.97)
+        self.assertEqual(2, fr_DF_30.framesDroppedPerMinute)
+
+        fr_DF_60 = Framerate(59.94)
+        self.assertEqual(4, fr_DF_60.framesDroppedPerMinute)
+
+        for rate in self.NTSC_NDF_rates + self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
+            fr = Framerate(rate)
+            self.assertEqual(0, fr.framesDroppedPerMinute)

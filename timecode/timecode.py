@@ -89,7 +89,7 @@ class Timecode(object):
     def tc_to_frames(self, timecode):
         """Converts the given timecode to frames
         """
-        hours, minutes, seconds, frames = map(int, timecode.split(':'))
+        hours, minutes, seconds, frames = self.split_timecode(timecode)
 
         # Drop drop_frame number of frames every minute except when minute
         # is divisible by 10.
@@ -157,17 +157,12 @@ class Timecode(object):
 
         return hrs, mins, secs, frs
 
-    @classmethod
-    def parse_timecode(cls, timecode):
+    @staticmethod
+    def split_timecode(timecode):
         """parses timecode string frames '00:00:00:00' or '00:00:00;00' or
         milliseconds '00:00:00:000'
         """
-        bfr = timecode.replace(';', ':').replace('.', ':').split(':')
-        hrs = int(bfr[0])
-        mins = int(bfr[1])
-        secs = int(bfr[2])
-        frs = int(bfr[3])
-        return hrs, mins, secs, frs
+        return map(int, timecode.replace(';', ':').replace('.', ':').split(':'))
 
     def __iter__(self):
         return self

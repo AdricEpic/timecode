@@ -66,30 +66,24 @@ class Timecode(object):
         # attribute override order
         # start_timecode > frames > start_seconds
         if start_timecode:
-            self.frames = self.tc_to_frames(start_timecode)
+            self.frames = self.time_to_frames(*self.split_timecode(start_timecode))
         else:
             if frames is not None:  # because 0==False, and frames can be 0
                 self.frames = frames
             elif start_seconds is not None:
-                self.frames = self.float_to_tc(start_seconds)
+                self.frames = self.time_to_frames(seconds=start_seconds)
             else:
                 # use default value of 00:00:00:00
-                self.frames = self.tc_to_frames('00:00:00:00')
+                self.frames = self.time_to_frames()
 
     def set_timecode(self, timecode):
         """Sets the frames by using the given timecode
         """
-        self.frames = self.tc_to_frames(timecode)
+        self.frames = self.time_to_frames(*self.split_timecode(timecode))
 
-    def float_to_tc(self, seconds):
-        """set the frames by using the given seconds
-        """
-        return int(seconds * int(self.framerate))
-
-    def tc_to_frames(self, timecode):
+    def time_to_frames(self, hours=0, minutes=0, seconds=0, frames=0):
         """Converts the given timecode to frames
         """
-        hours, minutes, seconds, frames = self.split_timecode(timecode)
 
         # Drop drop_frame number of frames every minute except when minute
         # is divisible by 10.

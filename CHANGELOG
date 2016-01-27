@@ -12,7 +12,7 @@ Changes
 
 * **New:** Rewritten the whole library from scratch.
 
-* **New:** Most important change is the licencing. There was now license
+* **New:** Most important change is the licencing. There was no license
   defined in the previous implementation. The library is now licensed under MIT
   license.
 

@@ -1,7 +1,7 @@
 import unittest
 import sys
 
-from timecode.framerate import Framerate, FramerateError
+from timecode.framerate import Framerate
 
 
 class FramerateTests(unittest.TestCase):
@@ -174,13 +174,9 @@ class FramerateTests(unittest.TestCase):
 
     def test_dropframe_rate_others(self):
         """Test non-NTSC rates raise error when getting dropframe rates"""
-        def get_property(obj):
-            assert(isinstance(obj, Framerate))
-            return obj.dropFrameRate
-
-        for rate in self.PAL_rates + list(self.misc_rates.iterkeys()):
+        for rate in self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
             fr = Framerate(rate)
-            self.assertRaises(FramerateError, get_property, fr)
+            self.assertIsNone(fr.dropFrameRate)
 
     def test_frames_dropped_per_min(self):
         fr_DF_30 = Framerate(29.97)

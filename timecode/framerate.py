@@ -26,7 +26,12 @@ class Framerate(object):
             return float(self._framerate)
 
     def __int__(self):
-        return int(round(float(self.nonDropFrameRate)))
+        if self._framerate in self._misc_rates:
+            return int(self._misc_rates[self._framerate])
+        elif self.isDropFrame:
+            return int(round(float(self.nonDropFrameRate)))
+        else:
+            return int(round(float(self.framerate)))
 
     def __str__(self):
         return self.framerate
@@ -93,13 +98,12 @@ class Framerate(object):
     @property
     def dropFrameRate(self):
         """Return drop-frame equivalent of current framerate.
-        Raises ValueError if current framerate does not support drop-frame
+        Returns None if framerate has no drop-frame equivalent
         """
-        # ToDo: Maybe should return None instead of raising?
-        if self._framerate not in self._NTSC_rates:
-            raise FramerateError("Framerate {} is not an NTSC rate with a drop-frame equivalent".format(self._framerate))
-
-        return self._framerate if self._framerate in self._NTSC_DF_rates else self._NDF_to_DF[self._framerate]
+        if self._framerate not in self._NTSC_rates or self._framerate in self._NTSC_P_rates:
+            return None
+        else:
+            return self._framerate if self._framerate in self._NTSC_DF_rates else self._NDF_to_DF[self._framerate]
 
     @property
     def nonDropFrameRate(self):
@@ -111,8 +115,6 @@ class Framerate(object):
             return self.framerate
         elif self._framerate not in self._misc_rates:
             return self._framerate if self._framerate in self._NTSC_NDF_rates else self._DF_to_NDF[self._framerate]
-        else:
-            return self._misc_rates[self._framerate]
 
     @property
     def framesDroppedPerMinute(self):
@@ -129,7 +131,3 @@ class Framerate(object):
     def isNTSC(self):
         """Return True if assigned framerate is NTSC"""
         return any(self._framerate in f for f in (self._NTSC_DF_rates, self._NTSC_NDF_rates, self._NTSC_P_rates))
-
-
-class FramerateError(Exception):
-    """Raised when an error occurs with Framerates"""

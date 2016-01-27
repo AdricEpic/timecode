@@ -192,3 +192,19 @@ class FramerateTests(unittest.TestCase):
         for rate in self.NTSC_NDF_rates + self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
             fr = Framerate(rate)
             self.assertEqual(0, fr.framesDroppedPerMinute)
+
+    def test_standards_identification(self):
+        for rate in self.NTSC_DF_rates + self.NTSC_NDF_rates + self.NTSC_P_rates:
+            fr = Framerate(rate)
+            self.assertTrue(fr.isNTSC)
+            self.assertFalse(fr.isPAL)
+
+        for rate in self.PAL_rates:
+            fr = Framerate(rate)
+            self.assertTrue(fr.isPAL)
+            self.assertFalse(fr.isNTSC)
+
+        for rate in self.misc_rates:
+            fr = Framerate(rate)
+            self.assertFalse(fr.isNTSC)
+            self.assertFalse(fr.isPAL)

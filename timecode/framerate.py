@@ -120,6 +120,16 @@ class Framerate(object):
         # From dropdrame rates, dropped frames is 6% of the rate rounded to nearest integer
         return int(round(float(self.framerate) * .066666)) if self.isDropFrame else 0
 
+    @property
+    def isPAL(self):
+        """Return True if assigned framerate is PAL"""
+        return self._framerate in self._PAL_rates
+
+    @property
+    def isNTSC(self):
+        """Return True if assigned framerate is NTSC"""
+        return any(self._framerate in f for f in (self._NTSC_DF_rates, self._NTSC_NDF_rates, self._NTSC_P_rates))
+
 
 class FramerateError(Exception):
     """Raised when an error occurs with Framerates"""

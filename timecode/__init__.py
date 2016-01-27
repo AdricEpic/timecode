@@ -23,5 +23,6 @@
 
 
 from .timecode import Timecode, TimecodeError
+from .framerate import Framerate, FramerateError
 
 __version__ = '0.3.1'

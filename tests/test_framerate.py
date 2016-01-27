@@ -36,8 +36,15 @@ class FramerateTests(unittest.TestCase):
     invalid_value_lists = [invalid_int_values, invalid_float_values, invalid_str_values, invalid_unicode_values,
                            invalid_type_values]
 
+    def shortDescription(self):
+        description = super(FramerateTests, self).shortDescription()
+        if description:
+            description = "  " + description
+        return description
+
     def test_init_valid_framerates(self):
-        """Test initialization with valid framerates"""
+        """Initializing with valid framerates"""
+
         def verify_valid_framerate(fps):
             fr = Framerate(fps)
 
@@ -58,7 +65,7 @@ class FramerateTests(unittest.TestCase):
             verify_valid_framerate(valid_misc)
 
     def test_init_invalid_framerates(self):
-        """Test initialization with invalid framerates"""
+        """Initializing with invalid framerates"""
 
         def verify_invalid_framerate(fps_):
             if isinstance(fps_, (basestring, int, float)):
@@ -72,7 +79,8 @@ class FramerateTests(unittest.TestCase):
                 verify_invalid_framerate(invalid_value)
 
     def test_float_conversion(self):
-        """Test __float__ method"""
+        """__float__ functionality"""
+
         for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates:
             fr = Framerate(number_rate)
             self.assertEqual(float(fr), float(number_rate))
@@ -82,7 +90,8 @@ class FramerateTests(unittest.TestCase):
             self.assertEqual(float(fr), float(self.misc_rates[misc_rate]))
 
     def test_int_conversion(self):
-        """Test __int__ method"""
+        """__int__ functionality"""
+
         for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates:
             fr = Framerate(number_rate)
             if number_rate in self.NTSC_DF_rates:
@@ -95,7 +104,7 @@ class FramerateTests(unittest.TestCase):
             self.assertEqual(int(fr), int(self.misc_rates[misc_rate]))
 
     def test_set_valid_framerate_value(self):
-        """Test setting framerate property to valid value"""
+        """Set framerate property to valid value"""
 
         for rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
             fr = Framerate(24)
@@ -103,7 +112,8 @@ class FramerateTests(unittest.TestCase):
             self.assertEqual(rate, fr.framerate)
 
     def test_set_invalid_framerate_value(self):
-        """Test setting framerate property to invalid value"""
+        """Set framerate property to invalid value"""
+
         def set_value(obj, value):
             assert(isinstance(obj, Framerate))
             obj.framerate = value
@@ -121,7 +131,8 @@ class FramerateTests(unittest.TestCase):
                 verify_invalid_framerate(invalid_value)
 
     def test_equality_against_equivalent(self):
-        """Test comparing Framerate against equivalent values"""
+        """Compare Framerate against equivalent values"""
+
         for valid_value_list in self.valid_value_lists:
             for valid_value in valid_value_list:
                 fr = Framerate(valid_value)
@@ -135,7 +146,8 @@ class FramerateTests(unittest.TestCase):
             self.assertEqual(fr, fr2)
 
     def test_equality_against_inqeual(self):
-        """Test comparing Framerate against inequal values"""
+        """Compare Framerate against inequal values"""
+
         fr = Framerate(24)
 
         # Compare against other valid Framerates
@@ -154,7 +166,8 @@ class FramerateTests(unittest.TestCase):
             self.assertNotEqual(fr, value)
 
     def test_dropframe_identification(self):
-        """Test identification of dropframe rates"""
+        """Identification of dropframe rates"""
+
         for rate in self.NTSC_DF_rates:
             fr = Framerate(rate)
             self.assertTrue(fr.isDropFrame)
@@ -164,7 +177,8 @@ class FramerateTests(unittest.TestCase):
             self.assertFalse(fr.isDropFrame)
 
     def test_dropframe_rate_NTSC_nonP(self):
-        """Test NTSC rates have dropframe-equivalent rates"""
+        """NTSC non-progressive rates have dropframe-equivalent rates"""
+
         for rate in self.NTSC_DF_rates + self.NTSC_NDF_rates:
             fr = Framerate(rate)
             if rate in self.NTSC_DF_rates:
@@ -173,12 +187,15 @@ class FramerateTests(unittest.TestCase):
                 self.assertEqual(fr.dropFrameRate, self.NDF_to_DF[rate])
 
     def test_dropframe_rate_others(self):
-        """Test non-NTSC rates raise error when getting dropframe rates"""
+        """NTSC progressive and non-NTSC rates have no dropframe rate"""
+
         for rate in self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
             fr = Framerate(rate)
             self.assertIsNone(fr.dropFrameRate)
 
     def test_frames_dropped_per_min(self):
+        """Dropframe rates drop the correct number of frames"""
+
         fr_DF_30 = Framerate(29.97)
         self.assertEqual(2, fr_DF_30.framesDroppedPerMinute)
 
@@ -190,6 +207,7 @@ class FramerateTests(unittest.TestCase):
             self.assertEqual(0, fr.framesDroppedPerMinute)
 
     def test_standards_identification(self):
+        """Identification of framerate standards"""
         for rate in self.NTSC_DF_rates + self.NTSC_NDF_rates + self.NTSC_P_rates:
             fr = Framerate(rate)
             self.assertTrue(fr.isNTSC)

@@ -5,25 +5,18 @@ import unittest
 from timecode import Timecode
 
 
-class TimecodeTester(unittest.TestCase):
-    """tests Timecode class
-    """
+class TimecodeTests(unittest.TestCase):
+    """Timecode class tests"""
 
-    @classmethod
-    def setUpClass(cls):
-        """set up the test in class level
-        """
-        pass
-
-    @classmethod
-    def tearDownClass(cls):
-        """clean up the tests in class level
-        """
-        pass
+    def shortDescription(self):
+        description = super(TimecodeTests, self).shortDescription()
+        if description:
+            description = "  " + description
+        return description
 
     def test_instance_creation(self):
-        """test instance creation, none of these should raise any error
-        """
+        """Creating new instances; none of these should raise errors."""
+
         Timecode('23.98', '00:00:00:00')
         Timecode('24', '00:00:00:00')
         Timecode('25', '00:00:00:00')
@@ -47,6 +40,8 @@ class TimecodeTester(unittest.TestCase):
         Timecode('24', frames=12000)
 
     def test_repr_overload(self):
+        """__repr__ returns expected string"""
+
         timeobj = Timecode('24', '01:00:00:00')
         self.assertEqual('01:00:00:00', timeobj.__repr__())
 
@@ -72,8 +67,9 @@ class TimecodeTester(unittest.TestCase):
         self.assertEqual('00:00:02:00', timeobj.__repr__())
 
     def test_timecode_init(self):
-        """testing several timecode initialization
-        """
+        """Initializing of several timecode variations"""
+        # ToDo: This should be merged with instance creation tests
+
         tc = Timecode('29.97')
         self.assertEqual('00:00:00:00', tc.__str__())
         self.assertEqual(1, tc.frames)
@@ -130,6 +126,7 @@ class TimecodeTester(unittest.TestCase):
         self.assertEqual('00:00:00:00', tc.__str__())
 
     def test_frame_to_tc(self):
+        """Converting from frames to timecode"""
 
         def assertFrameToTC(tc_, hrs, mins, secs, frs):
             self.assertEqual(hrs, tc_.hrs)
@@ -156,8 +153,8 @@ class TimecodeTester(unittest.TestCase):
         self.assertEqual('00:08:19:23', tc.__str__())
 
     def test_tc_to_frame_test_in_2997(self):
-        """testing if timecode to frame conversion is ok in 2997
-        """
+        """Converting to frames from 29.97"""
+
         tc = Timecode('29.97', '00:00:00:00')
         self.assertEqual(tc.frames, 1)
 
@@ -186,6 +183,9 @@ class TimecodeTester(unittest.TestCase):
         self.assertEqual(2589408, tc.frames)
 
     def test_drop_frame(self):
+        """Miscellaneous drop-frame tests"""
+        # ToDo: Split these into more explicit cases
+
         tc = Timecode('29.97', '13:36:59:29')
         timecode = tc.next()
         self.assertEqual("13:37:00:02", timecode.__str__())
@@ -204,27 +204,34 @@ class TimecodeTester(unittest.TestCase):
         timecode = tc.next()
         self.assertEqual("13:40:00:00", timecode.__str__())
 
-    def test_setting_frame_rate_to_2997_forces_drop_frame(self):
-        """testing if setting the frame rate to 29.97 forces the dropframe to
-        True
-        """
-        tc = Timecode('29.97')
-        self.assertTrue(tc.framerate.isDropFrame)
+    # ToDo: Finish deleting these tests; covered by Framerate tests
+    # def test_setting_frame_rate_to_2997_forces_drop_frame(self):
+    #     """Test that setting the frame rate to 29.97 forces the dropframe to
+    #     True
+    #     """
+    #     tc = Timecode('29.97')
+    #     self.assertTrue(tc.framerate.isDropFrame)
+    #
+    #     tc = Timecode('29.97')
+    #     self.assertTrue(tc.framerate.isDropFrame)
 
-        tc = Timecode('29.97')
-        self.assertTrue(tc.framerate.isDropFrame)
-
-    def test_setting_frame_rate_to_5994_forces_drop_frame(self):
-        """testing if setting the frame rate to 59.94 forces the dropframe to
-        True
-        """
-        tc = Timecode('59.94')
-        self.assertTrue(tc.framerate.isDropFrame)
-
-        tc = Timecode('59.94')
-        self.assertTrue(tc.framerate.isDropFrame)
+    # def test_setting_frame_rate_to_5994_forces_drop_frame(self):
+    #     """testing if setting the frame rate to 59.94 forces the dropframe to
+    #     True
+    #     """
+    #     tc = Timecode('59.94')
+    #     self.assertTrue(tc.framerate.isDropFrame)
+    #
+    #     tc = Timecode('59.94')
+    #     self.assertTrue(tc.framerate.isDropFrame)
 
     def test_iteration(self):
+        """__iter__/next/back override functionality"""
+        # ToDo: Coverage report says __iter__, back aren't covered.
+        # Investigate and fix. Add tests for back.
+        # Alternative: remove or change implementation. Feels bad that
+        # iterating over a timecode modifies it in-place.
+
         t = None
         tc = Timecode('29.97', '03:36:09:23')
         self.assertEqual("03:36:09:23", tc)
@@ -305,6 +312,7 @@ class TimecodeTester(unittest.TestCase):
         self.assertEqual(12060, tc.frames)
 
     def test_op_overloads_add(self):
+        """__add__ functionality"""
 
         def assertTcAdded(base_tc, add_tc, expected_str, expected_frs):
             from_tc = base_tc + add_tc
@@ -352,9 +360,11 @@ class TimecodeTester(unittest.TestCase):
         assertTcAdded(tc, tc2, "00:08:40:04", 12485)
 
     def test_add_with_two_different_frame_rates(self):
-        """testing if the resultant object will have the left sides frame rate
-        when two timecodes with different frame rates are added together
         """
+        Adding two timecodes with different framerates creates a
+        timecode whose framerate matches the left-hand timecode's framerate
+        """
+
         tc1 = Timecode('29.97', '00:00:00:00')
         tc2 = Timecode('24', '00:00:00:10')
         tc3 = tc1 + tc2
@@ -363,9 +373,8 @@ class TimecodeTester(unittest.TestCase):
         self.assertEqual('00:00:00:11', tc3)
 
     def test_frame_number_attribute_value_is_correctly_calculated(self):
-        """testing if the Timecode.frame_number attribute is correctly
-        calculated
-        """
+        """Timecode.frame_number calculations"""
+
         tc1 = Timecode('24', '00:00:00:00')
         self.assertEqual(1, tc1.frames)
         self.assertEqual(0, tc1.frame_number)
@@ -395,6 +404,7 @@ class TimecodeTester(unittest.TestCase):
         self.assertEqual(3600, tc7.frame_number)
 
     def test_op_overloads_subtract(self):
+        """__sub__ functionality"""
 
         def assertTcSubtracted(base_tc, sub_tc, expected_str, expected_frs):
             from_tc = base_tc - sub_tc
@@ -442,6 +452,8 @@ class TimecodeTester(unittest.TestCase):
         assertTcSubtracted(tc, tc2, "00:07:59:18", 11515)
 
     def test_op_overloads_mult(self):
+        """__mult__ functionality"""
+
         def assertTcMultiplied(base_tc, add_tc, expected_str, expected_frs):
             from_tc = base_tc * add_tc
             from_frames = base_tc * add_tc.frames
@@ -489,9 +501,8 @@ class TimecodeTester(unittest.TestCase):
         assertTcMultiplied(tc, tc2, "19:21:39:23", 5820000)
 
     def test_24_hour_limit_in_24fps(self):
-        """testing if the timecode will loop back to 00:00:00:00 after 24 hours
-        in 24 fps
-        """
+        """24fps timecode loops back after 24 hours"""
+
         tc = Timecode('24', '00:00:00:21')
         tc2 = Timecode('24', '23:59:59:23')
         self.assertEqual(
@@ -504,9 +515,8 @@ class TimecodeTester(unittest.TestCase):
         )
 
     def test_24_hour_limit_in_2997fps(self):
-        """testing if the timecode will loop back to 00:00:00:00 after 24 hours
-        in 29.97 fps
-        """
+        """29.97fps timecode loops back after 24 hours"""
+
         tc = Timecode('29.97', '00:00:00:21')
         self.assertTrue(tc.framerate.isDropFrame)
         self.assertEqual(22, tc.frames)
@@ -545,9 +555,9 @@ class TimecodeTester(unittest.TestCase):
         )
 
     def test_24_hour_limit(self):
-        """testing if the timecode will loop back to 00:00:00:00 after 24 hours
-        in 29.97 fps
-        """
+        """Timecode addition and conversion"""
+        # ToDo: Split this into multiple, more explicit tests
+
         tc0 = Timecode('59.94', '23:59:59:29')
         self.assertEqual(5178786, tc0.frames)
         tc0 = Timecode('29.97', '23:59:59:29')

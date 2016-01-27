@@ -9,7 +9,7 @@ CHANGES = open(os.path.join(here, 'CHANGELOG')).read()
 
 setup(
     name='timecode',
-    version='0.3.0',
+    version='0.3.1',
     description="SMPTE Time Code Manipulation Library",
     long_description='%s\n\n%s' % (README, CHANGES),
     classifiers=[

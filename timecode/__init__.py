@@ -22,7 +22,6 @@
 # THE SOFTWARE.
 
 
+from .__version__ import __version__
 from .timecode import Timecode, TimecodeError
 from .framerate import Framerate
-
-__version__ = '0.3.1'

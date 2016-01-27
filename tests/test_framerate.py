@@ -73,7 +73,7 @@ class FramerateTests(unittest.TestCase):
 
     def test_float_conversion(self):
         """Test __float__ method"""
-        for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.PAL_rates:
+        for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates:
             fr = Framerate(number_rate)
             self.assertEqual(float(fr), float(number_rate))
 
@@ -83,7 +83,7 @@ class FramerateTests(unittest.TestCase):
 
     def test_int_conversion(self):
         """Test __int__ method"""
-        for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.PAL_rates:
+        for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates:
             fr = Framerate(number_rate)
             if number_rate in self.NTSC_DF_rates:
                 self.assertEqual(int(fr), int(round(float(fr))))
@@ -97,7 +97,7 @@ class FramerateTests(unittest.TestCase):
     def test_set_valid_framerate_value(self):
         """Test setting framerate property to valid value"""
 
-        for rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
+        for rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
             fr = Framerate(24)
             fr.framerate = rate
             self.assertEqual(rate, fr.framerate)

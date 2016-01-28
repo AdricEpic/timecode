@@ -204,27 +204,6 @@ class TimecodeTests(unittest.TestCase):
         timecode = tc.next()
         self.assertEqual("13:40:00:00", timecode.__str__())
 
-    # ToDo: Finish deleting these tests; covered by Framerate tests
-    # def test_setting_frame_rate_to_2997_forces_drop_frame(self):
-    #     """Test that setting the frame rate to 29.97 forces the dropframe to
-    #     True
-    #     """
-    #     tc = Timecode('29.97')
-    #     self.assertTrue(tc.framerate.isDropFrame)
-    #
-    #     tc = Timecode('29.97')
-    #     self.assertTrue(tc.framerate.isDropFrame)
-
-    # def test_setting_frame_rate_to_5994_forces_drop_frame(self):
-    #     """testing if setting the frame rate to 59.94 forces the dropframe to
-    #     True
-    #     """
-    #     tc = Timecode('59.94')
-    #     self.assertTrue(tc.framerate.isDropFrame)
-    #
-    #     tc = Timecode('59.94')
-    #     self.assertTrue(tc.framerate.isDropFrame)
-
     def test_iteration(self):
         """__iter__/next/back override functionality"""
         # ToDo: Coverage report says __iter__, back aren't covered.
@@ -318,6 +297,9 @@ class TimecodeTests(unittest.TestCase):
             from_tc = base_tc + add_tc
             from_frames = base_tc + add_tc.frames
 
+            self.assertIsNot(base_tc._framerate, from_tc._framerate,
+                             "New timecode from addition has its own "
+                             "framerate object")
             self.assertEqual(from_tc, from_frames,
                              "Adding a timecode results in the same offset "
                              "as adding the equivalent number of frames")
@@ -410,6 +392,9 @@ class TimecodeTests(unittest.TestCase):
             from_tc = base_tc - sub_tc
             from_frames = base_tc - sub_tc.frames
 
+            self.assertIsNot(base_tc._framerate, from_tc._framerate,
+                             "New timecode from subtraction has its own "
+                             "framerate object")
             self.assertEqual(from_tc, from_frames,
                              "Subtracting a timecode results in the same offset"
                              " as subtracting the equivalent number of frames")
@@ -458,6 +443,9 @@ class TimecodeTests(unittest.TestCase):
             from_tc = base_tc * add_tc
             from_frames = base_tc * add_tc.frames
 
+            self.assertIsNot(base_tc._framerate, from_tc._framerate,
+                             "New timecode from multiplication has its own "
+                             "framerate object")
             self.assertEqual(from_tc, from_frames,
                              "Multiplying a timecode results in the same "
                              "offset as multiplying by the equivalent number "
@@ -500,6 +488,8 @@ class TimecodeTests(unittest.TestCase):
         tc2 = Timecode('24', frames=485)
         assertTcMultiplied(tc, tc2, "19:21:39:23", 5820000)
 
+    # ToDo: Add tests for __div__. Alternatively, remove div functionality?
+
     def test_24_hour_limit_in_24fps(self):
         """24fps timecode loops back after 24 hours"""
 
@@ -518,11 +508,11 @@ class TimecodeTests(unittest.TestCase):
         """29.97fps timecode loops back after 24 hours"""
 
         tc = Timecode('29.97', '00:00:00:21')
-        self.assertTrue(tc.framerate.isDropFrame)
+        self.assertTrue(tc._framerate.isDropFrame)
         self.assertEqual(22, tc.frames)
 
         tc2 = Timecode('29.97', '23:59:59:29')
-        self.assertTrue(tc2.framerate.isDropFrame)
+        self.assertTrue(tc2._framerate.isDropFrame)
         self.assertEqual(2589408, tc2.frames)
 
         self.assertEqual(

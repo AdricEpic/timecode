@@ -155,3 +155,7 @@ class Framerate(object):
     def isNTSC(self):
         """Return True if assigned framerate is NTSC"""
         return any(self._framerate in f for f in (self._NTSC_DF_rates, self._NTSC_NDF_rates, self._NTSC_P_rates))
+
+    def copy(self):
+        """Create a new Framerate that copies this one"""
+        return Framerate(self._framerate)

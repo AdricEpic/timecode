@@ -88,10 +88,10 @@ class Timecode(object):
         # Drop drop_frame number of frames every minute except when minute
         # is divisible by 10.
         total_minutes = (hours * self._MIN_PER_HOUR) + minutes
-        frames_to_drop = self.framerate.framesDroppedPerMinute * (total_minutes - (total_minutes // 10))
+        frames_to_drop = self._framerate.framesDroppedPerMinute * (total_minutes - (total_minutes // 10))
 
         # Finish converting time to frames, then remove and dropped frames.
-        frame_number = (((total_minutes * self._SEC_PER_MIN) + seconds) * int(self.framerate)) + frames - frames_to_drop
+        frame_number = (((total_minutes * self._SEC_PER_MIN) + seconds) * int(self._framerate)) + frames - frames_to_drop
 
         # Calculated frame number is an offset from starting frame, so
         # increment by 1 to include the starting frame.
@@ -107,7 +107,7 @@ class Timecode(object):
         ffps = float(self._framerate)
 
         # From dropdrame rates, dropped frames is 6% of the rate rounded to nearest integer
-        frames_dropped_per_min = self.framerate.framesDroppedPerMinute
+        frames_dropped_per_min = self._framerate.framesDroppedPerMinute
 
         # Number of frames in an hour
         frames_per_hour = int(round(ffps * self._SEC_PER_HOUR))
@@ -130,7 +130,7 @@ class Timecode(object):
         # clock
         frame_number %= frames_per_24_hours
 
-        if self.framerate.isDropFrame:
+        if self._framerate.isDropFrame:
             d = frame_number // frames_per_10_minutes
             m = frame_number % frames_per_10_minutes
             if m > frames_dropped_per_min:
@@ -140,7 +140,7 @@ class Timecode(object):
                 frame_number += frames_dropped_per_min * 9 * d
 
         # Convert final frame number to time
-        ifps = int(self.framerate)
+        ifps = int(self._framerate)
         total_seconds = (frame_number // ifps)
         total_minutes = (total_seconds // 60)
 
@@ -204,6 +204,7 @@ class Timecode(object):
         """returns new Timecode instance with the given timecode or frames
         added to this one
         """
+        # ToDo: rewrite to be consistent with other math overrides
         # duplicate current one
         tc = Timecode(self.framerate, frames=self.frames)
 
@@ -293,7 +294,7 @@ class Timecode(object):
 
     @property
     def framerate(self):
-        return self._framerate
+        return str(self._framerate)
 
 
 class TimecodeError(Exception):

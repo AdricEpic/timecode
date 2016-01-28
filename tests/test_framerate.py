@@ -222,3 +222,12 @@ class FramerateTests(unittest.TestCase):
             fr = Framerate(rate)
             self.assertFalse(fr.isNTSC)
             self.assertFalse(fr.isPAL)
+
+    def test_copy(self):
+        """Copying functionality"""
+        for value_list in self.valid_value_lists:
+            for rate in value_list:
+                fr_1 = Framerate(rate)
+                fr_2 = fr_1.copy()
+                self.assertEqual(fr_1, fr_2)
+                self.assertIsNot(fr_1, fr_2)

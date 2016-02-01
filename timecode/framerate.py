@@ -83,14 +83,14 @@ class Framerate(object):
 
     def _validate_framerate(self, fps):
         if not isinstance(fps, (basestring, int, float)):
-            raise TypeError("Type {} not supported for fps".format(fps.__class__.__name__))
+            raise FramerateError("Type {} not supported for fps".format(fps.__class__.__name__))
 
         # Convert to float to make sure float strings will be accepted
         if isinstance(fps, basestring) and fps not in self._misc_rates:
             try:
                 fps = float(fps)
             except ValueError:
-                raise ValueError("{} is not a valid framerate".format(fps))
+                raise FramerateError("{} is not a valid framerate".format(fps))
 
         # Convert number types to strings for comparison. Reduces accidentally
         # including invalid rates by floating-point rounding. Still some margin
@@ -101,7 +101,7 @@ class Framerate(object):
             fps = str(fps)
 
         if fps not in self._supported_framerates:
-            raise ValueError("Framerate {} is not supported.".format(fps))
+            raise Framerate("Framerate {} is not supported.".format(fps))
 
         return fps
 
@@ -158,4 +158,8 @@ class Framerate(object):
 
     def copy(self):
         """Create a new Framerate that copies this one"""
-        return Framerate(self._framerate)
+        return Framerate(self.framerate)
+
+
+class FramerateError(Exception):
+    """Exception class for Framerate errors"""

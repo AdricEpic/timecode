@@ -1,7 +1,7 @@
 import unittest
 import sys
 
-from timecode.framerate import Framerate
+from timecode.framerate import Framerate, FramerateError
 
 
 class FramerateTests(unittest.TestCase):
@@ -67,16 +67,9 @@ class FramerateTests(unittest.TestCase):
     def test_init_invalid_framerates(self):
         """Initializing with invalid framerates"""
 
-        def verify_invalid_framerate(fps_):
-            if isinstance(fps_, (basestring, int, float)):
-                expected_exc = ValueError
-            else:
-                expected_exc = TypeError
-            self.assertRaises(expected_exc, Framerate, fps_)
-
         for invalid_value_list in self.invalid_value_lists:
             for invalid_value in invalid_value_list:
-                verify_invalid_framerate(invalid_value)
+                self.assertRaises(FramerateError, Framerate, invalid_value)
 
     def test_float_conversion(self):
         """__float__ functionality"""
@@ -119,12 +112,8 @@ class FramerateTests(unittest.TestCase):
             obj.framerate = value
 
         def verify_invalid_framerate(rate):
-            if isinstance(rate, (basestring, int, float)):
-                expected_exc = ValueError
-            else:
-                expected_exc = TypeError
             fr = Framerate(24)
-            self.assertRaises(expected_exc, set_value, fr, rate)
+            self.assertRaises(FramerateError, set_value, fr, rate)
 
         for invalid_value_list in self.invalid_value_lists:
             for invalid_value in invalid_value_list:

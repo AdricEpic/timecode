@@ -96,10 +96,10 @@ class Timecode(object):
         # Drop drop_frame number of frames every minute except when minute
         # is divisible by 10.
         total_minutes = (hours * self._MIN_PER_HOUR) + minutes
-        frames_to_drop = self._framerate.framesDroppedPerMinute * (total_minutes - (total_minutes // 10))
+        frs_to_drop = self._framerate.framesDroppedPerMinute * (total_minutes - (total_minutes // 10))
 
         # Finish converting time to frames, then remove and dropped frames.
-        frame_number = (((total_minutes * self._SEC_PER_MIN) + seconds) * int(self._framerate)) + frames - frames_to_drop
+        frame_number = (((total_minutes * self._SEC_PER_MIN) + seconds) * int(self._framerate)) + frames - frs_to_drop
 
         # Calculated frame number is an offset from starting frame, so
         # increment by 1 to include the starting frame.
@@ -116,7 +116,7 @@ class Timecode(object):
         ffps = float(self._framerate)
 
         # From dropdrame rates, dropped frames is 6% of the rate rounded to nearest integer
-        frames_dropped_per_min = self._framerate.framesDroppedPerMinute
+        frdrop_per_min = self._framerate.framesDroppedPerMinute
 
         # Number of frames in an hour
         frames_per_hour = int(round(ffps * self._SEC_PER_HOUR))
@@ -126,7 +126,7 @@ class Timecode(object):
         frames_per_10_minutes = int(round(ffps * self._SEC_PER_MIN * 10))
         # Number of frames per minute is the round of the framerate * 60 minus
         # the number of dropped frames
-        frames_per_minute = int(round(ffps) * self._SEC_PER_MIN) - frames_dropped_per_min
+        frames_per_minute = int(round(ffps) * self._SEC_PER_MIN) - frdrop_per_min
 
         # Remove base frame from count to generate offset
         frame_number = frames - 1
@@ -142,11 +142,11 @@ class Timecode(object):
         if self._framerate.isDropFrame:
             d = frame_number // frames_per_10_minutes
             m = frame_number % frames_per_10_minutes
-            if m > frames_dropped_per_min:
-                frame_number += (frames_dropped_per_min * 9 * d) + \
-                    frames_dropped_per_min * ((m - frames_dropped_per_min) // frames_per_minute)
+            if m > frdrop_per_min:
+                frame_number += ((frdrop_per_min * 9 * d) +
+                                 (frdrop_per_min * ((m - frdrop_per_min) // frames_per_minute)))
             else:
-                frame_number += frames_dropped_per_min * 9 * d
+                frame_number += frdrop_per_min * 9 * d
 
         # Convert final frame number to time
         ifps = int(self._framerate)

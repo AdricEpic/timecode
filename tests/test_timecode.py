@@ -26,7 +26,6 @@ class TimecodeTests(unittest.TestCase):
         Timecode('59.94', '00:00:00:00')
         Timecode('60', '00:00:00:00')
         Timecode('ms', '03:36:09:230')
-        Timecode('24', start_timecode=None, frames=12000)
 
         Timecode('23.98')
         Timecode('24')
@@ -37,7 +36,9 @@ class TimecodeTests(unittest.TestCase):
         Timecode('59.94')
         Timecode('60')
         Timecode('ms')
+
         Timecode('24', frames=12000)
+        Timecode('24', start_seconds=10)
 
     def test_repr_overload(self):
         """__repr__ returns expected string"""
@@ -187,108 +188,22 @@ class TimecodeTests(unittest.TestCase):
         # ToDo: Split these into more explicit cases
 
         tc = Timecode('29.97', '13:36:59:29')
-        timecode = tc.next()
-        self.assertEqual("13:37:00:02", timecode.__str__())
+        tc.add_frames(1)
+        self.assertEqual("13:37:00:02", str(tc))
 
         tc = Timecode('59.94', '13:36:59:59')
-        self.assertEqual("13:36:59:59", tc.__str__())
+        self.assertEqual("13:36:59:59", str(tc))
 
-        timecode = tc.next()
-        self.assertEqual("13:37:00:04", timecode.__str__())
+        tc.add_frames(1)
+        self.assertEqual("13:37:00:04", str(tc))
 
         tc = Timecode('59.94', '13:39:59:59')
-        timecode = tc.next()
-        self.assertEqual("13:40:00:00", timecode.__str__())
+        tc.add_frames(1)
+        self.assertEqual("13:40:00:00", str(tc))
 
         tc = Timecode('29.97', '13:39:59:29')
-        timecode = tc.next()
-        self.assertEqual("13:40:00:00", timecode.__str__())
-
-    def test_iteration(self):
-        """__iter__/next/back override functionality"""
-        # ToDo: Coverage report says __iter__, back aren't covered.
-        # Investigate and fix. Add tests for back.
-        # Alternative: remove or change implementation. Feels bad that
-        # iterating over a timecode modifies it in-place.
-
-        t = None
-        tc = Timecode('29.97', '03:36:09:23')
-        self.assertEqual("03:36:09:23", tc)
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:11:23", t)
-        self.assertEqual(388764, tc.frames)
-
-        tc = Timecode('29.97', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:11:23", t)
-        self.assertEqual(388764, tc.frames)
-
-        tc = Timecode('30', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:11:23", t)
-        self.assertEqual(389154, tc.frames)
-
-        tc = Timecode('25', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:12:08", t)
-        self.assertEqual(324309, tc.frames)
-
-        tc = Timecode('59.94', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:10:23", t)
-        self.assertEqual(777444, tc.frames)
-
-        tc = Timecode('60', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:10:23", t)
-        self.assertEqual(778224, tc.frames)
-
-        tc = Timecode('59.94', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:10:23", t)
-        self.assertEqual(777444, tc.frames)
-
-        tc = Timecode('23.98', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:12:11", t)
-        self.assertEqual(311340, tc.frames)
-
-        tc = Timecode('24', '03:36:09:23')
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("03:36:12:11", t)
-        self.assertEqual(311340, tc.frames)
-
-        tc = Timecode('ms', '03:36:09:230')
-        for x in range(60):
-            t = tc.next()
-            self.assertIsNotNone(t)
-        self.assertEqual('03:36:09:290', t)
-        self.assertEqual(12969291, tc.frames)
-
-        tc = Timecode('24', frames=12000)
-        for x in range(60):
-            t = tc.next()
-            self.assertTrue(t)
-        self.assertEqual("00:08:22:11", t)
-        self.assertEqual(12060, tc.frames)
+        tc.add_frames(1)
+        self.assertEqual("13:40:00:00", str(tc))
 
     def test_op_overloads_add(self):
         """__add__ functionality"""

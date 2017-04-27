@@ -48,7 +48,7 @@ class Timecode(object):
           if it is not one already. Required. Raises FramerateError if value
           is invalid.
         :param str, None start_timecode: String timecode representation.
-        :param float, None int start_seconds: Number of seconds to represent..
+`       :param float, None, int start_seconds: Number of seconds to represent..
         :param int, None frames: Number of frames to represent
         :raises: FramerateError
         """
@@ -168,17 +168,6 @@ class Timecode(object):
         millisecond-relative '00:00:00:000' forms
         """
         return map(int, timecode.replace(';', ':').replace('.', ':').split(':'))
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        self.add_frames(1)
-        return self
-
-    def back(self):
-        self.sub_frames(1)
-        return self
 
     def add_frames(self, frames):
         """
@@ -306,6 +295,7 @@ class Timecode(object):
                         frames=div_frames)
 
     def __repr__(self):
+        # ToDo: Restricting frames value to 2 digits is not always correct
         return "%02d:%02d:%02d:%02d" % self.frames_to_time(self.frames)
 
     @property

@@ -74,6 +74,9 @@ class Timecode(object):
                 # use default value of 00:00:00:00
                 self.frames = self.time_to_frames()
 
+    def copy(self):
+        return Timecode(self._framerate.copy(), frames=self.frames)
+
     def set_timecode(self, timecode):
         """
         Set current value to new timecode.
@@ -187,23 +190,6 @@ class Timecode(object):
 
         self.add_frames(-frames)
 
-    def mult_frames(self, frames):
-        """
-        Multiply current number of frames
-        :param int, float frames: Value to multiply by
-        """
-
-        self.frames *= frames
-
-    def div_frames(self, frames):
-        """
-        Divide current number of frames
-        :param int, float frames: Value to divide by
-        """
-
-        # ToDo: Safeguard div_frames against non-number values and div-by-zero
-        self.frames = self.frames / frames
-
     def __eq__(self, other):
 
         if isinstance(other, Timecode):
@@ -212,8 +198,10 @@ class Timecode(object):
         elif isinstance(other, str):
             new_tc = Timecode(self.framerate, other)
             return self.__eq__(new_tc)
-        elif isinstance(other, int):
+        elif isinstance(other, (int, long)):
             return self.frames == other
+
+        return False
 
     def __add__(self, other):
         """
@@ -221,21 +209,10 @@ class Timecode(object):
         timecode and the second value.
         :param Timecode, int other: Value to add
         """
-        # ToDo: rewrite to be consistent with other math overrides
-        # duplicate current timecode
-        tc = Timecode(self.framerate, frames=self.frames)
-
-        if isinstance(other, Timecode):
-            tc.add_frames(other.frames)
-        elif isinstance(other, int):
-            tc.add_frames(other)
-        else:
-            raise TimecodeError(
-                'Type %s not supported for arithmetic.' %
-                other.__class__.__name__
-            )
-
-        return tc
+        if not isinstance(other, Timecode):
+            raise TypeError("unsupported operand type(s) for +: '{}' and '{}'".format(self.__class__.__name__,
+                                                                                      other.__class__.__name__))
+        return Timecode(self.framerate, frames=self.frames + other.frames)
 
     def __sub__(self, other):
         """
@@ -243,37 +220,21 @@ class Timecode(object):
         of this timecode and the second value.
         :param Timecode, int other: Value to subtract
         """
-
-        if isinstance(other, Timecode):
-            subtracted_frames = self.frames - other.frames
-        elif isinstance(other, int):
-            subtracted_frames = self.frames - other
-        else:
-            raise TimecodeError(
-                'Type %s not supported for arithmetic.' %
-                other.__class__.__name__
-            )
-        return Timecode(self.framerate, start_timecode=None,
-                        frames=subtracted_frames)
+        if not isinstance(other, Timecode):
+            raise TypeError("unsupported operand type(s) for -: '{}' and '{}'".format(self.__class__.__name__,
+                                                                                      other.__class__.__name__))
+        return Timecode(self.framerate, frames=self.frames - other.frames)
 
     def __mul__(self, other):
         """
         Create new Timecode object whose total frame count is the product of
         this timecode and the second value.
-        :param Timecode, int, float other: Value to multiply by
+        :param int, float, long other: Value to multiply by
         """
-
-        if isinstance(other, Timecode):
-            multiplied_frames = self.frames * other.frames
-        elif isinstance(other, int):
-            multiplied_frames = self.frames * other
-        else:
-            raise TimecodeError(
-                'Type %s not supported for arithmetic.' %
-                other.__class__.__name__
-            )
-        return Timecode(self.framerate, start_timecode=None,
-                        frames=multiplied_frames)
+        if not isinstance(other, (int, float, long)):
+            raise TypeError("unsupported operand type(s) for *: '{}' and '{}'".format(self.__class__.__name__,
+                                                                                      other.__class__.__name__))
+        return Timecode(self.framerate, start_timecode=None, frames=self.frames * other)
 
     def __div__(self, other):
         """
@@ -281,18 +242,13 @@ class Timecode(object):
         this timecode and the second value.
         :param Timecode, int, float other: Value to divide by
         """
-
-        if isinstance(other, Timecode):
-            div_frames = self.frames / other.frames
-        elif isinstance(other, int):
-            div_frames = self.frames / other
-        else:
-            raise TimecodeError(
-                'Type %s not supported for arithmetic.' %
-                other.__class__.__name__
-            )
-        return Timecode(self.framerate, start_timecode=None,
-                        frames=div_frames)
+        if not isinstance(other, (int, float, long)):
+            raise TypeError("unsupported operand type(s) for /: '{}' and '{}'".format(self.__class__.__name__,
+                                                                                      other.__class__.__name__))
+        try:
+            return Timecode(self.framerate, start_timecode=None, frames=self.frames / other)
+        except ZeroDivisionError:
+            raise ZeroDivisionError("Timecode division by zero")
 
     def __repr__(self):
         # ToDo: Restricting frames value to 2 digits is not always correct

@@ -210,7 +210,7 @@ class TimecodeTests(unittest.TestCase):
 
         def assertTcAdded(base_tc, add_tc, expected_str, expected_frs):
             from_tc = base_tc + add_tc
-            from_frames = base_tc + add_tc.frames
+            from_frames = base_tc.frames + add_tc.frames
 
             self.assertIsNot(base_tc._framerate, from_tc._framerate,
                              "New timecode from addition has its own "
@@ -219,10 +219,9 @@ class TimecodeTests(unittest.TestCase):
                              "Adding a timecode results in the same offset "
                              "as adding the equivalent number of frames")
 
-            for _tc in (from_tc, from_frames):
-                self.assertIsInstance(_tc, Timecode)
-                self.assertEqual(expected_str, _tc.__str__())
-                self.assertEqual(expected_frs, _tc.frames)
+            self.assertIsInstance(from_tc, Timecode)
+            self.assertEqual(expected_str, str(from_tc))
+            self.assertEqual(expected_frs, from_frames)
 
         tc = Timecode('23.98', '03:36:09:23')
         tc2 = Timecode('23.98', '00:00:29:23')
@@ -305,7 +304,7 @@ class TimecodeTests(unittest.TestCase):
 
         def assertTcSubtracted(base_tc, sub_tc, expected_str, expected_frs):
             from_tc = base_tc - sub_tc
-            from_frames = base_tc - sub_tc.frames
+            from_frames = base_tc.frames - sub_tc.frames
 
             self.assertIsNot(base_tc._framerate, from_tc._framerate,
                              "New timecode from subtraction has its own "
@@ -314,10 +313,9 @@ class TimecodeTests(unittest.TestCase):
                              "Subtracting a timecode results in the same offset"
                              " as subtracting the equivalent number of frames")
 
-            for _tc in (from_tc, from_frames):
-                self.assertIsInstance(_tc, Timecode)
-                self.assertEqual(expected_str, _tc.__str__())
-                self.assertEqual(expected_frs, _tc.frames)
+            self.assertIsInstance(from_tc, Timecode)
+            self.assertEqual(expected_str, str(from_tc))
+            self.assertEqual(expected_frs, from_frames)
 
         tc = Timecode('23.98', '03:36:09:23')
         tc2 = Timecode('23.98', '00:00:29:23')
@@ -354,9 +352,9 @@ class TimecodeTests(unittest.TestCase):
     def test_op_overloads_mult(self):
         """__mult__ functionality"""
 
-        def assertTcMultiplied(base_tc, add_tc, expected_str, expected_frs):
-            from_tc = base_tc * add_tc
-            from_frames = base_tc * add_tc.frames
+        def assertTcMultiplied(base_tc, multiplier, expected_str, expected_frs):
+            from_tc = base_tc * multiplier
+            from_frames = base_tc.frames * multiplier
 
             self.assertIsNot(base_tc._framerate, from_tc._framerate,
                              "New timecode from multiplication has its own "
@@ -366,42 +364,42 @@ class TimecodeTests(unittest.TestCase):
                              "offset as multiplying by the equivalent number "
                              "of frames")
 
-            for _tc in (from_tc, from_frames):
-                self.assertIsInstance(_tc, Timecode)
-                self.assertEqual(expected_str, _tc.__str__())
-                self.assertEqual(expected_frs, _tc.frames)
+            self.assertIsInstance(from_tc, Timecode)
+            self.assertEqual(expected_str, str(from_tc))
+            self.assertEqual(expected_frs, from_frames)
 
+        # ToDo: Rewrite these to use straight multipliers
         tc = Timecode('23.98', '03:36:09:23')
         tc2 = Timecode('23.98', '00:00:29:23')
-        assertTcMultiplied(tc, tc2, "04:09:35:23", 224121600)
+        assertTcMultiplied(tc, tc2.frames, "04:09:35:23", 224121600)
 
         tc = Timecode('25', '03:36:09:23')
         tc2 = Timecode('25', '00:00:29:23')
-        assertTcMultiplied(tc, tc2, "10:28:20:00", 242862501)
+        assertTcMultiplied(tc, tc2.frames, "10:28:20:00", 242862501)
 
         tc = Timecode('29.97', '00:00:09:23')
         tc2 = Timecode('29.97', '00:00:29:23')
-        assertTcMultiplied(tc, tc2, "02:26:09:29", 262836)
+        assertTcMultiplied(tc, tc2.frames, "02:26:09:29", 262836)
 
         tc = Timecode('30', '03:36:09:23')
         tc2 = Timecode('30', '00:00:29:23')
-        assertTcMultiplied(tc, tc2, "04:50:01:05", 347850036)
+        assertTcMultiplied(tc, tc2.frames, "04:50:01:05", 347850036)
 
         tc = Timecode('59.94', '03:36:09:23')
         tc2 = Timecode('59.94', '00:00:29:23')
-        assertTcMultiplied(tc, tc2, "18:59:27:35", 1371305376)
+        assertTcMultiplied(tc, tc2.frames, "18:59:27:35", 1371305376)
 
         tc = Timecode('60', '03:36:09:23')
         tc2 = Timecode('60', '00:00:29:23')
-        assertTcMultiplied(tc, tc2, "19:00:21:35", 1372681296)
+        assertTcMultiplied(tc, tc2.frames, "19:00:21:35", 1372681296)
 
         tc = Timecode('ms', '03:36:09:230')
         tc2 = Timecode('ms', '01:06:09:230')
-        assertTcMultiplied(tc, tc2, "17:22:11:360", 51477873731361)
+        assertTcMultiplied(tc, tc2.frames, "17:22:11:360", 51477873731361)
 
         tc = Timecode('24', frames=12000)
         tc2 = Timecode('24', frames=485)
-        assertTcMultiplied(tc, tc2, "19:21:39:23", 5820000)
+        assertTcMultiplied(tc, tc2.frames, "19:21:39:23", 5820000)
 
     # ToDo: Add tests for __div__. Alternatively, remove div functionality?
 
@@ -410,14 +408,9 @@ class TimecodeTests(unittest.TestCase):
 
         tc = Timecode('24', '00:00:00:21')
         tc2 = Timecode('24', '23:59:59:23')
-        self.assertEqual(
-            '00:00:00:21',
-            (tc + tc2).__str__()
-        )
-        self.assertEqual(
-            '02:00:00:00',
-            (tc2 + 159840001).__str__()
-        )
+        self.assertEqual('00:00:00:21', str(tc + tc2))
+        tc2.add_frames(159840001)
+        self.assertEqual('02:00:00:00', str(tc2))
 
     def test_24_hour_limit_in_2997fps(self):
         """29.97fps timecode loops back after 24 hours"""
@@ -430,34 +423,21 @@ class TimecodeTests(unittest.TestCase):
         self.assertTrue(tc2._framerate.isDropFrame)
         self.assertEqual(2589408, tc2.frames)
 
-        self.assertEqual(
-            '00:00:00:21',
-            tc.__repr__()
-        )
-        self.assertEqual(
-            '23:59:59:29',
-            tc2.__repr__()
-        )
+        self.assertEqual('00:00:00:21', tc.__repr__())
+        self.assertEqual('23:59:59:29', tc2.__repr__())
 
-        self.assertEqual(
-            '00:00:00:21',
-            (tc + tc2).__str__()
-        )
+        self.assertEqual('00:00:00:21', (tc + tc2).__str__())
 
-        self.assertEqual(
-            '02:00:00:00',
-            (tc2 + 215785).__str__()
-        )
+        tc2.add_frames(215785)
+        self.assertEqual('02:00:00:00', str(tc2))
 
-        self.assertEqual(
-            '02:00:00:00',
-            (tc2 + 215785 + 2589408).__str__()
-        )
+        tc3 = tc2.copy()
+        tc3.add_frames(215785 + 2589408)
+        self.assertEqual('02:00:00:00', str(tc2))
 
-        self.assertEqual(
-            '02:00:00:00',
-            (tc2 + 215785 + 2589408 + 2589408).__str__()
-        )
+        tc3 = tc2.copy()
+        tc3.add_frames(215785 + 2589408 + 2589408)
+        self.assertEqual('02:00:00:00', str(tc2))
 
     def test_24_hour_limit(self):
         """Timecode addition and conversion"""
@@ -472,16 +452,18 @@ class TimecodeTests(unittest.TestCase):
         self.assertEqual('23:59:59:29', tc1.__str__())
 
         tc2 = Timecode('29.97', '23:59:59:29')
-        tc3 = tc2 + 1
+        tc3 = tc2.copy()
+        tc3.add_frames(1)
         self.assertEqual('00:00:00:00', tc3.__str__())
 
         tc2 = Timecode('29.97', '23:59:59:29')
-        tc3 = tc2 + 21
+        tc3 = tc2.copy()
+        tc3.add_frames(21)
         self.assertEqual('00:00:00:20', tc3.__str__())
 
         tc = Timecode('29.97', '00:00:00:21')
         tc2 = Timecode('29.97', '23:59:59:29')
-        tc3 = (tc + tc2)
+        tc3 = tc + tc2
         self.assertEqual('00:00:00:21', tc3.__str__())
 
         tc = Timecode('29.97', '04:20:13:21')

@@ -23,33 +23,35 @@
 
 from framerate import Framerate
 
+# Common conversion multipliers
+HOUR_PER_DAY = 24
+MIN_PER_HOUR = 60
+SEC_PER_MIN = 60
+SEC_PER_HOUR = SEC_PER_MIN * MIN_PER_HOUR
+
 
 class Timecode(object):
-
-    # Common conversion multipliers
-    _HOUR_PER_DAY = 24
-    _MIN_PER_HOUR = 60
-    _SEC_PER_MIN = 60
-    _SEC_PER_HOUR = _SEC_PER_MIN * _MIN_PER_HOUR
+    """
+    An SMPTE timecode object. Represents an absolute number of frames
+    modulated by the assigned framerate.
+    """
 
     def __init__(self, framerate, start_timecode=None, start_seconds=None,
                  frames=None):
-        """An SMPTE timecode object. Represents an absolute number of frames
-        modulated by the assigned framerate.
-
-        Can be initialized using a timecode string representation, a total
-        number of seconds, or a total number of frames. If more than one of
-        these values are provided, only one value will be used, selected in the
-        following order of precedence: timecode > frames > . If no starting
-        value is provided, it will be initialized at 00:00:00:00
+        """
+        Initialize using a timecode string representation, a total number of
+        seconds, or a total number of frames. If more than one of these values
+        are provided, only one value will be used, selected in the following
+        order of precedence: timecode > seconds > frames . If no starting value is
+        provided, it will be initialized at 00:00:00:00
 
         :param basestring, int, float, Framerate framerate: The frame rate of
           the Timecode instance. It will be converted to a Framerate object
           if it is not one already. Required. Raises FramerateError if value
           is invalid.
         :param str, None start_timecode: String timecode representation.
-`       :param float, None, int start_seconds: Number of seconds to represent..
-        :param int, None frames: Number of frames to represent
+`       :param float, int, long, None start_seconds: Number of seconds to represent.
+        :param int, long, None frames: Number of frames to represent
         :raises: FramerateError
         """
 
@@ -64,45 +66,48 @@ class Timecode(object):
         # attribute override order
         # start_timecode > frames > start_seconds
         if start_timecode:
-            self.frames = self.time_to_frames(*self.split_timecode(start_timecode))
+            self.frames = self.time_to_frames(self._framerate, *self.split_timecode_string(start_timecode))
         else:
             if frames is not None:  # because 0==False, and frames can be 0
                 self.frames = frames
             elif start_seconds is not None:
-                self.frames = self.time_to_frames(seconds=start_seconds)
+                self.frames = self.time_to_frames(self._framerate, seconds=start_seconds)
             else:
                 # use default value of 00:00:00:00
-                self.frames = self.time_to_frames()
+                self.frames = self.time_to_frames(self._framerate)
 
-    def copy(self):
-        return Timecode(self._framerate.copy(), frames=self.frames)
-
-    def set_timecode(self, timecode):
+    @staticmethod
+    def split_timecode_string(timecode):
         """
-        Set current value to new timecode.
-        :param str timecode: Timecode string representation
+        Convert timecode string into time unit numbers.
+        Accepts both frame-relative ('00:00:00:00' or '00:00:00;00') and
+        millisecond-relative '00:00:00:000' forms
         """
+        return map(int, timecode.replace(';', ':').replace('.', ':').split(':'))
 
-        self.frames = self.time_to_frames(*self.split_timecode(timecode))
-
-    def time_to_frames(self, hours=0, minutes=0, seconds=0, frames=0):
+    @staticmethod
+    def time_to_frames(framerate, hours=0, minutes=0, seconds=0, frames=0):
         """
         Convert real times to frames modulated by assigned framerate.
         Values that should wrap into the next highest unit will be handled
         automatically (eg. 60 seconds will become 1 minute).
+        :param str, float, int, Framerate framerate: Conversion base framerate
         :param int, float hours: Number of hours
         :param int, float minutes: Number of minutes
         :param int, float seconds: Number of seconds
         :param int frames: Number of frames
         """
+        # Conform input to Framerates
+        if not isinstance(framerate, Framerate):
+            framerate = Framerate(framerate)
 
         # Drop drop_frame number of frames every minute except when minute
         # is divisible by 10.
-        total_minutes = (hours * self._MIN_PER_HOUR) + minutes
-        frs_to_drop = self._framerate.framesDroppedPerMinute * (total_minutes - (total_minutes // 10))
+        total_minutes = (hours * MIN_PER_HOUR) + minutes
+        frs_to_drop = framerate.framesDroppedPerMinute * (total_minutes - (total_minutes // 10))
 
         # Finish converting time to frames, then remove and dropped frames.
-        frame_number = (((total_minutes * self._SEC_PER_MIN) + seconds) * int(self._framerate)) + frames - frs_to_drop
+        frame_number = (((total_minutes * SEC_PER_MIN) + seconds) * int(framerate)) + frames - frs_to_drop
 
         # Calculated frame number is an offset from starting frame, so
         # increment by 1 to include the starting frame.
@@ -110,26 +115,34 @@ class Timecode(object):
 
         return frame_count
 
-    def frames_to_time(self, frames):
+    @staticmethod
+    def frames_to_time_units(framerate, frames):
         """
         Convert frames to time values.
+        :param str, float, int, Framerate framerate: Conversion base framerate
+        :param int frames: Number of frames to convert to time values
         :returns (int, int, int, int): Tuple of time values (hours, minutes,
         seconds, frames)
         """
-        ffps = float(self._framerate)
+
+        # Conform input to Framerates
+        if not isinstance(framerate, Framerate):
+            framerate = Framerate(framerate)
+
+        ffps = float(framerate)
 
         # From dropdrame rates, dropped frames is 6% of the rate rounded to nearest integer
-        frdrop_per_min = self._framerate.framesDroppedPerMinute
+        frdrop_per_min = framerate.framesDroppedPerMinute
 
         # Number of frames in an hour
-        frames_per_hour = int(round(ffps * self._SEC_PER_HOUR))
+        frames_per_hour = int(round(ffps * SEC_PER_HOUR))
         # Number of frames in a day - timecode rolls over after 24 hours
-        frames_per_24_hours = frames_per_hour * self._HOUR_PER_DAY
+        frames_per_24_hours = frames_per_hour * HOUR_PER_DAY
         # Number of frames per ten minutes
-        frames_per_10_minutes = int(round(ffps * self._SEC_PER_MIN * 10))
+        frames_per_10_minutes = int(round(ffps * SEC_PER_MIN * 10))
         # Number of frames per minute is the round of the framerate * 60 minus
         # the number of dropped frames
-        frames_per_minute = int(round(ffps) * self._SEC_PER_MIN) - frdrop_per_min
+        frames_per_minute = int(round(ffps) * SEC_PER_MIN) - frdrop_per_min
 
         # Remove base frame from count to generate offset
         frame_number = frames - 1
@@ -142,7 +155,7 @@ class Timecode(object):
         # clock
         frame_number %= frames_per_24_hours
 
-        if self._framerate.isDropFrame:
+        if framerate.isDropFrame:
             d = frame_number // frames_per_10_minutes
             m = frame_number % frames_per_10_minutes
             if m > frdrop_per_min:
@@ -152,7 +165,7 @@ class Timecode(object):
                 frame_number += frdrop_per_min * 9 * d
 
         # Convert final frame number to time
-        ifps = int(self._framerate)
+        ifps = int(framerate)
         total_seconds = (frame_number // ifps)
         total_minutes = (total_seconds // 60)
 
@@ -163,14 +176,16 @@ class Timecode(object):
 
         return hrs, mins, secs, frs
 
-    @staticmethod
-    def split_timecode(timecode):
+    def copy(self):
+        return Timecode(self._framerate.copy(), frames=self.frames)
+
+    def set_timecode(self, timecode):
         """
-        Convert timecode string into time unit numbers.
-        Accepts both frame-relative ('00:00:00:00' or '00:00:00;00') and
-        millisecond-relative '00:00:00:000' forms
+        Set current value to new timecode.
+        :param str timecode: Timecode string representation
         """
-        return map(int, timecode.replace(';', ':').replace('.', ':').split(':'))
+
+        self.frames = self.time_to_frames(self._framerate, *self.split_timecode_string(timecode))
 
     def add_frames(self, frames):
         """
@@ -252,7 +267,7 @@ class Timecode(object):
 
     def __repr__(self):
         # ToDo: Restricting frames value to 2 digits is not always correct
-        return "%02d:%02d:%02d:%02d" % self.frames_to_time(self.frames)
+        return "%02d:%02d:%02d:%02d" % self.frames_to_time_units(self._framerate, self.frames)
 
     @property
     def hrs(self):
@@ -261,7 +276,7 @@ class Timecode(object):
         :rtype int
         """
 
-        hrs, mins, secs, frs = self.frames_to_time(self.frames)
+        hrs, mins, secs, frs = self.frames_to_time_units(self._framerate, self.frames)
         return hrs
 
     @property
@@ -272,7 +287,7 @@ class Timecode(object):
         :rtype int
         """
 
-        hrs, mins, secs, frs = self.frames_to_time(self.frames)
+        hrs, mins, secs, frs = self.frames_to_time_units(self._framerate, self.frames)
         return mins
 
     @property
@@ -283,7 +298,7 @@ class Timecode(object):
         :rtype int
         """
 
-        hrs, mins, secs, frs = self.frames_to_time(self.frames)
+        hrs, mins, secs, frs = self.frames_to_time_units(self.framerate, self.frames)
         return secs
 
     @property
@@ -294,7 +309,7 @@ class Timecode(object):
         :rtype int
         """
 
-        hrs, mins, secs, frs = self.frames_to_time(self.frames)
+        hrs, mins, secs, frs = self.frames_to_time_units(self.framerate, self.frames)
         return frs
 
     @property

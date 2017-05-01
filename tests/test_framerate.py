@@ -1,222 +1,147 @@
-import unittest
+
 import sys
+
+import pytest
 
 from timecode.framerate import Framerate, FramerateError
 
 
-class FramerateTests(unittest.TestCase):
-    # Timecodes
-    NTSC_NDF_rates = ['30', '60']
-    NTSC_DF_rates = ['29.97', '59.94']
-    NTSC_P_rates = ['24', '23.98']
-    PAL_rates = ['25', '50']
-    misc_rates = {"ms": 1000, "frames": 1}
+def flatten(in_list):
+    return [i for sub in in_list for i in sub]
 
-    DF_to_NDF = dict(zip(NTSC_DF_rates, NTSC_NDF_rates))
-    NDF_to_DF = dict(zip(NTSC_NDF_rates, NTSC_DF_rates))
 
-    # Valid framerate input values
-    valid_int_values = [24, 25, 30, 50, 60]
-    valid_float_values = [23.98, 24.0, 25.00, 29.97, 30.000, 50.0, 59.94, 60.00000000]
-    valid_str_values = ['23.98', '23.980', '24', '24.0', '25', '25.00', '29.97', '30', '30.0', '50',
-                        '50.00', '59.94', '59.94000', '60', '60.000000']
-    valid_unicode_values = [u'23.98', u'23.980', u'24', u'24.0', u'25', u'25.00', u'29.97', u'30', u'30.0', u'50',
-                            u'50.00', u'59.94', u'59.94000', u'60', u'60.000000']
+# Timecodes
+NTSC_NDF_rates = ['30', '60']
+NTSC_DF_rates = ['29.97', '59.94']
+NTSC_P_rates = ['24', '23.98']
+NTSC_rates = flatten([NTSC_NDF_rates, NTSC_DF_rates, NTSC_P_rates])
+PAL_rates = ['25', '50']
+misc_rates = {"ms": 1000, "frames": 1}
+all_rates = NTSC_rates + PAL_rates + list(misc_rates.iterkeys())
 
-    valid_value_lists = [valid_int_values, valid_float_values, valid_str_values, valid_unicode_values]
+DF_to_NDF = dict(zip(NTSC_DF_rates, NTSC_NDF_rates))
+NDF_to_DF = dict(zip(NTSC_NDF_rates, NTSC_DF_rates))
 
-    # Invalid framerate input values
-    invalid_int_values = [-sys.maxint - 1, 100, -1, 0, 1, 23, 26, 29, 31, 49, 51, 59, 61, sys.maxint]
-    invalid_float_values = [-100000000.00, -123463.34532, -.0000001, .00004, 23.979999999, 23.99999999, 59.9399999999,
-                            1000.2341234, 12349082341234]
-    invalid_str_values = ['not_a_number', '-205.0', '24.0.1', '23.9800000001', '239485029345680']
-    invalid_unicode_values = [u'not_a_number', u'-205.0', u'24.0.1', u'23.9800000001', u'239485029345680']
-    invalid_type_values = [None, ['24'], (29.97, 30), {'fps': 30}]
+# Valid framerate input values
+valid_int_values = [24, 25, 30, 50, 60]
+valid_float_values = [23.98, 24.0, 25.00, 29.97, 30.000, 50.0, 59.94, 60.00000000]
+valid_str_values = ['23.98', '23.980', '24', '24.0', '25', '25.00', '29.97', '30', '30.0', '50',
+                    '50.00', '59.94', '59.94000', '60', '60.000000']
+valid_unicode_values = [u'23.98', u'23.980', u'24', u'24.0', u'25', u'25.00', u'29.97', u'30', u'30.0', u'50',
+                        u'50.00', u'59.94', u'59.94000', u'60', u'60.000000']
 
-    invalid_value_lists = [invalid_int_values, invalid_float_values, invalid_str_values, invalid_unicode_values,
-                           invalid_type_values]
+valid_values = flatten([valid_int_values, valid_float_values, valid_str_values, valid_unicode_values])
 
-    def shortDescription(self):
-        description = super(FramerateTests, self).shortDescription()
-        if description:
-            description = "  " + description
-        return description
+# Invalid framerate input values
+invalid_int_values = [-sys.maxint - 1, 100, -1, 0, 1, 23, 26, 29, 31, 49, 51, 59, 61, sys.maxint]
+invalid_float_values = [-100000000.00, -123463.34532, -.0000001, .00004, 23.979999999, 23.99999999, 59.9399999999,
+                        1000.2341234, 12349082341234]
+invalid_str_values = ['not_a_number', '-205.0', '24.0.1', '23.9800000001', '239485029345680']
+invalid_unicode_values = [u'not_a_number', u'-205.0', u'24.0.1', u'23.9800000001', u'239485029345680']
+invalid_type_values = [None, ['24'], (29.97, 30), {'fps': 30}]
 
-    def test_init_valid_framerates(self):
-        """Initializing with valid framerates"""
+invalid_values = flatten([invalid_int_values, invalid_float_values, invalid_str_values, invalid_unicode_values,
+                          invalid_type_values])
 
-        def verify_valid_framerate(fps):
-            fr = Framerate(fps)
 
-            # Check that Framerate value matches parameter
-            if isinstance(fps, basestring) and fps not in self.misc_rates:
-                # No try/except here; we expect this value to be valid.
-                fps = float(fps)
-            if isinstance(fps, float):
-                self.assertEqual(fr.framerate, str(int(fps)) if fps.is_integer() else str(fr))
-            else:
-                self.assertEqual(fr.framerate, str(fps))
+@pytest.mark.parametrize('fps', valid_values + list(misc_rates.iterkeys()))
+def testNewValidFramerate(fps):
+    """Test that a Framerate can be created from a valid base framerate"""
+    fr = Framerate(fps)
+    # Check that Framerate value matches parameter
+    if isinstance(fps, basestring) and fps not in misc_rates:
+        # No try/except here; we expect this value to be valid.
+        fps = float(fps)
+    if isinstance(fps, float):
+        assert fr.framerate == str(int(fps)) if fps.is_integer() else str(fr)
+    else:
+        assert fr.framerate == str(fps)
 
-        for valid_value_list in self.valid_value_lists:
-            for valid_value in valid_value_list:
-                verify_valid_framerate(valid_value)
 
-        for valid_misc in self.misc_rates:
-            verify_valid_framerate(valid_misc)
+@pytest.mark.parametrize('fps', invalid_values)
+def testNewInvalidFramerate(fps):
+    with pytest.raises(FramerateError):
+        fr = Framerate(fps)
 
-    def test_init_invalid_framerates(self):
-        """Initializing with invalid framerates"""
 
-        for invalid_value_list in self.invalid_value_lists:
-            for invalid_value in invalid_value_list:
-                self.assertRaises(FramerateError, Framerate, invalid_value)
+@pytest.mark.parametrize('fps', all_rates)
+def testFloatConversion(fps):
+    fr = Framerate(fps)
 
-    def test_float_conversion(self):
-        """__float__ functionality"""
+    # If a misc rate, need to map to numeric value before testing
+    fps_value = misc_rates.get(fps, fps)
 
-        for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates:
-            fr = Framerate(number_rate)
-            self.assertEqual(float(fr), float(number_rate))
+    assert float(fr) == float(fps_value)
 
-        for misc_rate in self.misc_rates:
-            fr = Framerate(misc_rate)
-            self.assertEqual(float(fr), float(self.misc_rates[misc_rate]))
 
-    def test_int_conversion(self):
-        """__int__ functionality"""
+@pytest.mark.parametrize('fps', all_rates)
+def testFloatConversion(fps):
+    fr = Framerate(fps)
 
-        for number_rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates:
-            fr = Framerate(number_rate)
-            if number_rate in self.NTSC_DF_rates:
-                self.assertEqual(int(fr), int(round(float(fr))))
-            else:
-                self.assertEqual(int(fr), int(round(float(number_rate))))
+    # If a misc rate, need to map to numeric value before testing
+    fps_value = misc_rates.get(fps, fps)
 
-        for misc_rate in self.misc_rates:
-            fr = Framerate(misc_rate)
-            self.assertEqual(int(fr), int(self.misc_rates[misc_rate]))
+    assert int(fr) == int(round(float(fps_value)))
 
-    def test_set_valid_framerate_value(self):
-        """Set framerate property to valid value"""
 
-        for rate in self.NTSC_NDF_rates + self.NTSC_DF_rates + self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
-            fr = Framerate(24)
-            fr.framerate = rate
-            self.assertEqual(rate, fr.framerate)
+@pytest.mark.parametrize('fps', invalid_values)
+def testSetInvalidFramerateValue(fps):
+    fr = Framerate(24)
+    with pytest.raises(FramerateError):
+        fr.framerate = fps
 
-    def test_set_invalid_framerate_value(self):
-        """Set framerate property to invalid value"""
 
-        def set_value(obj, value):
-            assert(isinstance(obj, Framerate))
-            obj.framerate = value
+@pytest.mark.parametrize('fps', all_rates)
+def testIsEqual(fps):
+    fr = Framerate(fps)
 
-        def verify_invalid_framerate(rate):
-            fr = Framerate(24)
-            self.assertRaises(FramerateError, set_value, fr, rate)
+    # If a misc rate, need to map to numeric value before testing
+    fps_value = misc_rates.get(fps, fps)
 
-        for invalid_value_list in self.invalid_value_lists:
-            for invalid_value in invalid_value_list:
-                verify_invalid_framerate(invalid_value)
+    assert fr == fps_value
 
-    def test_equality_against_equivalent(self):
-        """Compare Framerate against equivalent values"""
+@pytest.mark.parametrize('fps', [v for v in (valid_values + invalid_values) if v not in (24, '24', '24.0')])
+def testIsNotEqual(fps):
+    fr = Framerate(24)
+    assert fr != fps
 
-        for valid_value_list in self.valid_value_lists:
-            for valid_value in valid_value_list:
-                fr = Framerate(valid_value)
-                self.assertEqual(fr, valid_value)
 
-        for valid_value in self.misc_rates.iterkeys():
-            fr = Framerate(valid_value)
-            fr2 = Framerate(valid_value)
+@pytest.mark.parametrize('fps', all_rates)
+def testDropFrameIdentification(fps):
+    fr = Framerate(fps)
+    assert fr.isDropFrame == (fps in NTSC_DF_rates)
 
-            self.assertEqual(fr, valid_value)
-            self.assertEqual(fr, fr2)
 
-    def test_equality_against_inqeual(self):
-        """Compare Framerate against inequal values"""
+@pytest.mark.parametrize('fps', NTSC_DF_rates + NTSC_NDF_rates)
+def testNTSCNonProgressiveDropFrameRates(fps):
+    fr = Framerate(fps)
+    assert fr.dropFrameRate == (fps if fps in NTSC_DF_rates else NDF_to_DF[fps])
 
-        fr = Framerate(24)
 
-        # Compare against other valid Framerates
-        for value in self.valid_float_values:
-            if value != 24:
-                fr2 = Framerate(value)
-                self.assertNotEqual(fr, fr2)
+@pytest.mark.parametrize('fps', NTSC_P_rates + PAL_rates + list(misc_rates.iterkeys()))
+def testOtherDropFrameRates(fps):
+    fr = Framerate(fps)
+    assert fr.dropFrameRate is None
 
-        # Compare against other non-Framerate values, both valid and invalid
-        other_values = [25, 30, 50, 60, 23.98, 25.00, 29.97, 30.000, 50.0, 59.94, 60.00000000, '23.98', '23.980', '25',
-                        '25.00', '29.97', '30', '30.0', '50', '50.00', '59.94', '59.94000', '60', '60.000000',
-                        -sys.maxint - 1, 100, -1, 0, 1, 23, 26, 29, 31, 49, 51, 59, 61, sys.maxint, 'not_a_number',
-                        '-205.0', '24.0.1', '23.9800000001', '239485029345680', None, ['24'], (29.97, 30), {'fps': 30}]
 
-        for value in other_values:
-            self.assertNotEqual(fr, value)
+@pytest.mark.parametrize(('rate', 'expected_frames_dropped'),
+                         [(29.97, 2), (59.94, 4)] + [(r, 0) for r in NTSC_NDF_rates + NTSC_P_rates + PAL_rates +
+                                                     list(misc_rates.iterkeys())])
+def testFramesDroppedPerMinute(rate, expected_frames_dropped):
+    fr = Framerate(rate)
+    assert fr.framesDroppedPerMinute == expected_frames_dropped
 
-    def test_dropframe_identification(self):
-        """Identification of dropframe rates"""
 
-        for rate in self.NTSC_DF_rates:
-            fr = Framerate(rate)
-            self.assertTrue(fr.isDropFrame)
+@pytest.mark.parametrize('rate', all_rates)
+def testStandardsIdentification(rate):
+    fr = Framerate(rate)
+    assert fr.isNTSC == (rate in NTSC_rates)
+    assert fr.isPAL == (rate in PAL_rates)
 
-        for rate in self.NTSC_NDF_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
-            fr = Framerate(rate)
-            self.assertFalse(fr.isDropFrame)
 
-    def test_dropframe_rate_NTSC_nonP(self):
-        """NTSC non-progressive rates have dropframe-equivalent rates"""
-
-        for rate in self.NTSC_DF_rates + self.NTSC_NDF_rates:
-            fr = Framerate(rate)
-            if rate in self.NTSC_DF_rates:
-                self.assertEqual(fr.dropFrameRate, rate)
-            else:
-                self.assertEqual(fr.dropFrameRate, self.NDF_to_DF[rate])
-
-    def test_dropframe_rate_others(self):
-        """NTSC progressive and non-NTSC rates have no dropframe rate"""
-
-        for rate in self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
-            fr = Framerate(rate)
-            self.assertIsNone(fr.dropFrameRate)
-
-    def test_frames_dropped_per_min(self):
-        """Dropframe rates drop the correct number of frames"""
-
-        fr_DF_30 = Framerate(29.97)
-        self.assertEqual(2, fr_DF_30.framesDroppedPerMinute)
-
-        fr_DF_60 = Framerate(59.94)
-        self.assertEqual(4, fr_DF_60.framesDroppedPerMinute)
-
-        for rate in self.NTSC_NDF_rates + self.NTSC_P_rates + self.PAL_rates + list(self.misc_rates.iterkeys()):
-            fr = Framerate(rate)
-            self.assertEqual(0, fr.framesDroppedPerMinute)
-
-    def test_standards_identification(self):
-        """Identification of framerate standards"""
-        for rate in self.NTSC_DF_rates + self.NTSC_NDF_rates + self.NTSC_P_rates:
-            fr = Framerate(rate)
-            self.assertTrue(fr.isNTSC)
-            self.assertFalse(fr.isPAL)
-
-        for rate in self.PAL_rates:
-            fr = Framerate(rate)
-            self.assertTrue(fr.isPAL)
-            self.assertFalse(fr.isNTSC)
-
-        for rate in self.misc_rates:
-            fr = Framerate(rate)
-            self.assertFalse(fr.isNTSC)
-            self.assertFalse(fr.isPAL)
-
-    def test_copy(self):
-        """Copying functionality"""
-        for value_list in self.valid_value_lists:
-            for rate in value_list:
-                fr_1 = Framerate(rate)
-                fr_2 = fr_1.copy()
-                self.assertEqual(fr_1, fr_2)
-                self.assertIsNot(fr_1, fr_2)
+@pytest.mark.parametrize('rate', all_rates)
+def testCopy(rate):
+    fr_base = Framerate(rate)
+    fr_copy = fr_base.copy()
+    assert fr_copy == fr_base
+    assert fr_copy is not fr_base

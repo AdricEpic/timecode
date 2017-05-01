@@ -1,71 +1,159 @@
 #!-*- coding: utf-8 -*-
 
 import unittest
+import pytest
+import sys
 
-from timecode import Timecode
+from timecode import Timecode, TimecodeError, Framerate, FramerateError
+
+valid_rates = ['23.98', '24', '25', '29.97', '30', '50', '59.94', '60', 'ms']
+zero_time = "00:00:00:00"
+
+
+@pytest.mark.parametrize('time_units', ({'hours': 1, 'minutes': 1, 'seconds': 1, 'frames': 1},
+                                        {'hours': 1}, {'minutes': 1}, {'seconds': 1}, {'frames': 1}))
+def testInitWithTimecodeAndTimeUnits(time_units):
+    with pytest.raises(TimecodeError):
+        tc = Timecode(24, timecode=zero_time, **time_units)
+
+
+@pytest.mark.parametrize('rate', ['23.98', '24', '25', '29.97', '30', '50', '59.94', '60', 'ms'])
+def testInitWithRawRate(rate):
+    tc = Timecode(rate)
+    assert isinstance(tc, Timecode)
+    assert tc == zero_time
+
+
+@pytest.mark.parametrize('rate', (-1, 100, .00001, None, ['24'], (29.97, 30), {'fps': 30}))
+def testInitWithInvalidFramerate(rate):
+    with pytest.raises(FramerateError):
+        tc = Timecode(rate)
+
+
+def testInitWithFramerate():
+    fr = Framerate(24)
+    tc = Timecode(fr)
+    assert isinstance(tc, Timecode)
+    assert tc == zero_time
+
+
+def testInitWithTimecodeString():
+    tc = Timecode(24, timecode='00:00:00:01')
+    assert isinstance(tc, Timecode)
+    assert str(tc) == "00:00:00:01"
+    assert tc.frames == 2
+
+
+def testInitWithFrameCount():
+    tc = Timecode(24, frames=2)
+    assert isinstance(tc, Timecode)
+    assert str(tc) == ("00:00:00:01")
+    assert tc.frames == 2
+
+
+@pytest.mark.parametrize(('units', 'timecode', 'frames'),
+                         (({'hours': 1, 'minutes': 1, 'seconds': 1, 'frames': 1}, '01:01:01:01', 87866),
+                          ({'hours': 1}, '01:00:00:00', 86401),
+                          ({'minutes': 1}, '00:01:00:00', 1441),
+                          ({'seconds': 1}, '00:00:01:00', 25),
+                          ({'frames': 2}, '00:00:00:01', 2))
+                         )
+def testInitWithFramerateAndTimeUnits(units, timecode, frames):
+    tc = Timecode(24, **units)
+    assert isinstance(tc, Timecode)
+    assert str(tc) == timecode
+    assert tc.frames == frames
+
+
+def testAddOverload():
+    tc_1 = Timecode(24, frames=1)
+    tc_2 = Timecode(24, frames=2)
+
+    tc_added = tc_1 + tc_2
+
+    assert tc_added is not tc_1
+    assert tc_added is not tc_2
+    assert tc_added.frames == tc_1.frames + tc_2.frames
+
+
+def testAddFrames():
+    tc = Timecode(24)
+    original_frames = tc.frames
+    tc.add_frames(1)
+    assert original_frames + 1 == tc.frames
+
+
+@pytest.mark.parametrize('frames', (-2, -10, -sys.maxint))
+def testAddFramesClampsLowerBound(frames):
+    tc = Timecode(24, frames=2)
+    tc.add_frames(frames)
+    assert tc.frames == 1
+
+
+@pytest.mark.parametrize('value', ('12', 1.0))
+def testAddFramesInvalidValue(value):
+    tc = Timecode(24)
+    with pytest.raises(TypeError):
+        tc.add_frames(value)
+
+
+def testSubFrames():
+    tc = Timecode(24, frames=2)
+    original_frames = tc.frames
+    tc.sub_frames(1)
+    assert original_frames - 1 == tc.frames
+
+
+@pytest.mark.parametrize('frames', (2, 10, sys.maxint))
+def testSubFramesClampsLowerBound(frames):
+    tc = Timecode(24, frames=2)
+    tc.sub_frames(frames)
+    assert tc.frames == 1
+
+
+@pytest.mark.parametrize('value', ('-12', -1.0))
+def testSubFramesInvalidValue(value):
+    tc = Timecode(24)
+    with pytest.raises(TypeError):
+        tc.sub_frames(value)
+
+# FixMe: Broken for 23.98; need to investigate which conversion(s) is/are off
+@pytest.mark.parametrize('rate', [r if r != '23.98' else pytest.mark.xfail(r) for r in valid_rates])
+def test24HourWraparound(rate):
+    tc = Timecode(rate, hours=24)
+    assert tc.frames > 0
+    assert str(tc) == ("00:00:00:00" if tc.framerate != 'ms' else "00:00:00:000")
 
 
 class TimecodeTests(unittest.TestCase):
     """Timecode class tests"""
 
-    def shortDescription(self):
-        description = super(TimecodeTests, self).shortDescription()
-        if description:
-            description = "  " + description
-        return description
-
-    def test_instance_creation(self):
-        """Creating new instances; none of these should raise errors."""
-
-        Timecode('23.98', '00:00:00:00')
-        Timecode('24', '00:00:00:00')
-        Timecode('25', '00:00:00:00')
-        Timecode('29.97', '00:00:00:00')
-        Timecode('30', '00:00:00:00')
-        Timecode('50', '00:00:00:00')
-        Timecode('59.94', '00:00:00:00')
-        Timecode('60', '00:00:00:00')
-        Timecode('ms', '03:36:09:230')
-
-        Timecode('23.98')
-        Timecode('24')
-        Timecode('25')
-        Timecode('29.97')
-        Timecode('30')
-        Timecode('50')
-        Timecode('59.94')
-        Timecode('60')
-        Timecode('ms')
-
-        Timecode('24', frames=12000)
-        Timecode('24', start_seconds=10)
-
-    def test_repr_overload(self):
-        """__repr__ returns expected string"""
+    def test_str_overload(self):
+        """__str__ returns expected string"""
 
         timeobj = Timecode('24', '01:00:00:00')
-        self.assertEqual('01:00:00:00', timeobj.__repr__())
+        self.assertEqual('01:00:00:00', timeobj.__str__())
 
         timeobj = Timecode('23.98', '20:00:00:00')
-        self.assertEqual('20:00:00:00', timeobj.__repr__())
+        self.assertEqual('20:00:00:00', timeobj.__str__())
 
         timeobj = Timecode('29.97', '00:09:00:00')
-        self.assertEqual('00:08:59:28', timeobj.__repr__())
+        self.assertEqual('00:08:59:28', timeobj.__str__())
 
         timeobj = Timecode('30', '00:10:00:00')
-        self.assertEqual('00:10:00:00', timeobj.__repr__())
+        self.assertEqual('00:10:00:00', timeobj.__str__())
 
         timeobj = Timecode('60', '00:00:09:00')
-        self.assertEqual('00:00:09:00', timeobj.__repr__())
+        self.assertEqual('00:00:09:00', timeobj.__str__())
 
         timeobj = Timecode('59.94', '00:00:20:00')
-        self.assertEqual('00:00:20:00', timeobj.__repr__())
+        self.assertEqual('00:00:20:00', timeobj.__str__())
 
         timeobj = Timecode('ms', '00:00:00:900')
-        self.assertEqual('00:00:00:900', timeobj.__repr__())
+        self.assertEqual('00:00:00:900', timeobj.__str__())
 
         timeobj = Timecode('24', frames=49)
-        self.assertEqual('00:00:02:00', timeobj.__repr__())
+        self.assertEqual('00:00:02:00', timeobj.__str__())
 
     def test_timecode_init(self):
         """Initializing of several timecode variations"""
@@ -299,56 +387,6 @@ class TimecodeTests(unittest.TestCase):
         self.assertEqual(3601, tc7.frames)
         self.assertEqual(3600, tc7.frame_number)
 
-    def test_op_overloads_subtract(self):
-        """__sub__ functionality"""
-
-        def assertTcSubtracted(base_tc, sub_tc, expected_str, expected_frs):
-            from_tc = base_tc - sub_tc
-            from_frames = base_tc.frames - sub_tc.frames
-
-            self.assertIsNot(base_tc._framerate, from_tc._framerate,
-                             "New timecode from subtraction has its own "
-                             "framerate object")
-            self.assertEqual(from_tc, from_frames,
-                             "Subtracting a timecode results in the same offset"
-                             " as subtracting the equivalent number of frames")
-
-            self.assertIsInstance(from_tc, Timecode)
-            self.assertEqual(expected_str, str(from_tc))
-            self.assertEqual(expected_frs, from_frames)
-
-        tc = Timecode('23.98', '03:36:09:23')
-        tc2 = Timecode('23.98', '00:00:29:23')
-        assertTcSubtracted(tc, tc2, "03:35:39:23", 310560)
-
-        tc = Timecode('25', '03:36:09:23')
-        tc2 = Timecode('25', '00:00:29:23')
-        assertTcSubtracted(tc, tc2, "03:35:39:24", 323500)
-
-        tc = Timecode('29.97', '03:36:09:23')
-        tc2 = Timecode('29.97', '00:00:29:23')
-        assertTcSubtracted(tc, tc2, "03:35:39:27", 387810)
-
-        tc = Timecode('30', '03:36:09:23')
-        tc2 = Timecode('30', '00:00:29:23')
-        assertTcSubtracted(tc, tc2, "03:35:39:29", 388200)
-
-        tc = Timecode('59.94', '03:36:09:23')
-        tc2 = Timecode('59.94', '00:00:29:23')
-        assertTcSubtracted(tc, tc2, "03:35:39:55", 775620)
-
-        tc = Timecode('60', '03:36:09:23')
-        tc2 = Timecode('60', '00:00:29:23')
-        assertTcSubtracted(tc, tc2, "03:35:39:59", 776400)
-
-        tc = Timecode('ms', '03:36:09:230')
-        tc2 = Timecode('ms', '01:06:09:230')
-        assertTcSubtracted(tc, tc2, "02:29:59:999", 9000000)
-
-        tc = Timecode('24', frames=12000)
-        tc2 = Timecode('24', frames=485)
-        assertTcSubtracted(tc, tc2, "00:07:59:18", 11515)
-
     def test_op_overloads_mult(self):
         """__mult__ functionality"""
 
@@ -403,42 +441,6 @@ class TimecodeTests(unittest.TestCase):
 
     # ToDo: Add tests for __div__. Alternatively, remove div functionality?
 
-    def test_24_hour_limit_in_24fps(self):
-        """24fps timecode loops back after 24 hours"""
-
-        tc = Timecode('24', '00:00:00:21')
-        tc2 = Timecode('24', '23:59:59:23')
-        self.assertEqual('00:00:00:21', str(tc + tc2))
-        tc2.add_frames(159840001)
-        self.assertEqual('02:00:00:00', str(tc2))
-
-    def test_24_hour_limit_in_2997fps(self):
-        """29.97fps timecode loops back after 24 hours"""
-
-        tc = Timecode('29.97', '00:00:00:21')
-        self.assertTrue(tc._framerate.isDropFrame)
-        self.assertEqual(22, tc.frames)
-
-        tc2 = Timecode('29.97', '23:59:59:29')
-        self.assertTrue(tc2._framerate.isDropFrame)
-        self.assertEqual(2589408, tc2.frames)
-
-        self.assertEqual('00:00:00:21', tc.__repr__())
-        self.assertEqual('23:59:59:29', tc2.__repr__())
-
-        self.assertEqual('00:00:00:21', (tc + tc2).__str__())
-
-        tc2.add_frames(215785)
-        self.assertEqual('02:00:00:00', str(tc2))
-
-        tc3 = tc2.copy()
-        tc3.add_frames(215785 + 2589408)
-        self.assertEqual('02:00:00:00', str(tc2))
-
-        tc3 = tc2.copy()
-        tc3.add_frames(215785 + 2589408 + 2589408)
-        self.assertEqual('02:00:00:00', str(tc2))
-
     def test_24_hour_limit(self):
         """Timecode addition and conversion"""
         # ToDo: Split this into multiple, more explicit tests
@@ -492,109 +494,3 @@ class TimecodeTests(unittest.TestCase):
         tc2 = Timecode('59.94', '23:59:59:59')
         tc3 = (tc + tc2)
         self.assertEqual('04:20:13:21', tc3.__str__())
-
-    # def test_exceptions(self):
-    #     """test exceptions
-    #     """
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('23.98', '01:20:30:303')
-    # 
-    #     self.assertEqual(
-    #         'Timecode string parsing error. 01:20:30:303',
-    #         cm.exception.__str__()
-    #     )
-    # 
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('24', '01:20:30:303')
-    #     
-    #     self.assertEqual(
-    #         'Timecode string parsing error. 01:20:30:303',
-    #         cm.exception.__str__()
-    #     )
-    #     
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('29.97', '01:20:30:303')
-    #     
-    #     self.assertEqual(
-    #         'Timecode string parsing error. 01:20:30:303',
-    #         cm.exception.__str__()
-    #     )
-    # 
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('30', '01:20:30:303')
-    #     
-    #     self.assertEqual(
-    #         'Timecode string parsing error. 01:20:30:303',
-    #         cm.exception.__str__()
-    #     )
-    # 
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('59.94', '01:20:30:303')
-    #     
-    #     self.assertEqual(
-    #         'Timecode string parsing error. 01:20:30:303',
-    #         cm.exception.__str__()
-    #     )
-    #     
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('60', '01:20:30:303')
-    #     
-    #     self.assertEqual(
-    #         'Timecode string parsing error. 01:20:30:303',
-    #         cm.exception.__str__()
-    #     )
-    #     
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('ms', '01:20:30:3039')
-    #     
-    #     self.assertEqual(
-    #         'Timecode string parsing error. 01:20:30:3039',
-    #         cm.exception.__str__()
-    #     )
-    #     
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         Timecode('60', '01:20:30:30')
-    #     
-    #     self.assertEqual(
-    #         'Drop frame with 60fps not supported, only 29.97 & 59.94.',
-    #         cm.exception.__str__(),
-    #     )
-    #     
-    #     tc = Timecode('29.97', '00:00:09:23')
-    #     tc2 = 'bum'
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         d = tc * tc2
-    #     self.assertEqual(
-    #         "Type str not supported for arithmetic.",
-    #         cm.exception.__str__()
-    #     )
-    #     
-    #     tc = Timecode('30', '00:00:09:23')
-    #     tc2 = 'bum'
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         d = tc + tc2
-    #     
-    #     self.assertEqual(
-    #         "Type str not supported for arithmetic.",
-    #         cm.exception.__str__()
-    #     )
-    #     
-    #     tc = Timecode('24', '00:00:09:23')
-    #     tc2 = 'bum'
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         d = tc - tc2
-    #     
-    #     self.assertEqual(
-    #         "Type str not supported for arithmetic.",
-    #         cm.exception.__str__()
-    #     )
-    #     
-    #     tc = Timecode('ms', '00:00:09:237')
-    #     tc2 = 'bum'
-    #     with self.assertRaises(TimecodeError) as cm:
-    #         d = tc / tc2
-    #     
-    #     self.assertEqual(
-    #         "Type str not supported for arithmetic.",
-    #         cm.exception.__str__()
-    #     )

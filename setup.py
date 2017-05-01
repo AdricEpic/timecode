@@ -38,4 +38,5 @@ setup(
     include_package_data=True,
     zip_safe=True,
     test_suite="tests",
+    tests_require=['pytest>=3.0.7']
 )

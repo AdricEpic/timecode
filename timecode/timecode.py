@@ -36,8 +36,8 @@ class Timecode(object):
     modulated by the assigned framerate.
     """
 
-    def __init__(self, framerate, start_timecode=None, start_seconds=None,
-                 frames=None):
+    def __init__(self, framerate, timecode=None,
+                 hours=None, minutes=None, seconds=None, frames=None):
         """
         Initialize using a timecode string representation, a total number of
         seconds, or a total number of frames. If more than one of these values
@@ -49,11 +49,18 @@ class Timecode(object):
           the Timecode instance. It will be converted to a Framerate object
           if it is not one already. Required. Raises FramerateError if value
           is invalid.
-        :param str, None start_timecode: String timecode representation.
+        :param str, None timecode: String timecode representation.
 `       :param float, int, long, None start_seconds: Number of seconds to represent.
         :param int, long, None frames: Number of frames to represent
         :raises: FramerateError
         """
+        hours = hours if hours is not None else 0
+        minutes = minutes if minutes is not None else 0
+        seconds = seconds if seconds is not None else 0
+        frames = frames if frames is not None else 0
+
+        if timecode is not None and any((hours, minutes, seconds, frames)):
+            raise TimecodeError("Ambiguous initial value: both timecode and time units provided")
 
         if isinstance(framerate, Framerate):
             self._framerate = framerate
@@ -63,18 +70,16 @@ class Timecode(object):
 
         self.frames = None
 
-        # attribute override order
-        # start_timecode > frames > start_seconds
-        if start_timecode:
-            self.frames = self.time_to_frames(self._framerate, *self.split_timecode_string(start_timecode))
+        if not any((timecode, hours, minutes, seconds, frames)):
+            # use default value of 00:00:00:00
+            self.frames = 1
+        elif timecode:
+            self.frames = self.time_to_frames(self._framerate, *self.split_timecode_string(timecode))
         else:
-            if frames is not None:  # because 0==False, and frames can be 0
+            if frames and not any((hours, minutes, seconds)):
                 self.frames = frames
-            elif start_seconds is not None:
-                self.frames = self.time_to_frames(self._framerate, seconds=start_seconds)
             else:
-                # use default value of 00:00:00:00
-                self.frames = self.time_to_frames(self._framerate)
+                self.frames = self.time_to_frames(self._framerate, hours, minutes, seconds, frames)
 
     @staticmethod
     def split_timecode_string(timecode):
@@ -83,6 +88,7 @@ class Timecode(object):
         Accepts both frame-relative ('00:00:00:00' or '00:00:00;00') and
         millisecond-relative '00:00:00:000' forms
         """
+        # FixMe: This accepts funky stuff like '1:1:1:1', which isn't right
         return map(int, timecode.replace(';', ':').replace('.', ':').split(':'))
 
     @staticmethod
@@ -97,6 +103,7 @@ class Timecode(object):
         :param int, float seconds: Number of seconds
         :param int frames: Number of frames
         """
+        # ToDo: verify that float values of non-frame units is handled properly
         # Conform input to Framerates
         if not isinstance(framerate, Framerate):
             framerate = Framerate(framerate)
@@ -113,6 +120,7 @@ class Timecode(object):
         # increment by 1 to include the starting frame.
         frame_count = frame_number + 1
 
+        # ToDo: verify that this always returns an int value
         return frame_count
 
     @staticmethod
@@ -189,21 +197,28 @@ class Timecode(object):
 
     def add_frames(self, frames):
         """
-        Add frames to current value
+        Add number of frames to current value. If resulting frame count is less
+        than 1, it is clamped to 1.
         :param int frames: Number of frames to add
         """
+        if not isinstance(frames, (int, long)):
+            raise TypeError("Added frames are of unexpected type '{}'".format(frames.__class__.__name__))
 
-        # ToDo: Safeguard add_frames against non-int values
-        self.frames += frames
+        self.frames = max(self.frames + frames, 1)
 
     def sub_frames(self, frames):
-        # ToDo: Safeguard sub_frames against non-int values
         """
-        Subtract frames from current value
+        Subtract number of frames from current value. If resulting frame count
+        is less than 1, it is clamped to 1.
         :param int frames: Number of frames to substract
         """
-
-        self.add_frames(-frames)
+        try:
+            self.add_frames(-frames)
+        except TypeError:
+            # NB: In addition to the manually-raised TypeError from add_frames,
+            # this also catches TypeErrors raised from applying the - operator
+            # to objects without support for it, which is acceptable.
+            raise TypeError("Subtracted frames are of unexpected type '{}'".format(frames.__class__.__name__))
 
     def __eq__(self, other):
 
@@ -249,7 +264,7 @@ class Timecode(object):
         if not isinstance(other, (int, float, long)):
             raise TypeError("unsupported operand type(s) for *: '{}' and '{}'".format(self.__class__.__name__,
                                                                                       other.__class__.__name__))
-        return Timecode(self.framerate, start_timecode=None, frames=self.frames * other)
+        return Timecode(self.framerate, timecode=None, frames=self.frames * other)
 
     def __div__(self, other):
         """
@@ -261,13 +276,19 @@ class Timecode(object):
             raise TypeError("unsupported operand type(s) for /: '{}' and '{}'".format(self.__class__.__name__,
                                                                                       other.__class__.__name__))
         try:
-            return Timecode(self.framerate, start_timecode=None, frames=self.frames / other)
+            return Timecode(self.framerate, timecode=None, frames=self.frames / other)
         except ZeroDivisionError:
             raise ZeroDivisionError("Timecode division by zero")
 
     def __repr__(self):
-        # ToDo: Restricting frames value to 2 digits is not always correct
-        return "%02d:%02d:%02d:%02d" % self.frames_to_time_units(self._framerate, self.frames)
+        return "<Timecode {} at {} fps>".format(self.__str__(), self.framerate)
+
+    def __str__(self):
+        # ToDo: SMPTE spec changes final separator based on drop/non-drop frame
+        if self.framerate != 'ms':
+            return "%02d:%02d:%02d:%02d" % self.frames_to_time_units(self._framerate, self.frames)
+        else:
+            return "%02d:%02d:%02d:%03d" % self.frames_to_time_units(self._framerate, self.frames)
 
     @property
     def hrs(self):

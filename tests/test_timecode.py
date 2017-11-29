@@ -14,7 +14,7 @@ zero_time = "00:00:00:00"
                                         {'hours': 1}, {'minutes': 1}, {'seconds': 1}, {'frames': 1}))
 def testInitWithTimecodeAndTimeUnits(time_units):
     with pytest.raises(TimecodeError):
-        tc = Timecode(24, timecode=zero_time, **time_units)
+        Timecode(24, timecode=zero_time, **time_units)
 
 
 @pytest.mark.parametrize('rate', ['23.98', '24', '25', '29.97', '30', '50', '59.94', '60', 'ms'])
@@ -27,7 +27,7 @@ def testInitWithRawRate(rate):
 @pytest.mark.parametrize('rate', (-1, 100, .00001, None, ['24'], (29.97, 30), {'fps': 30}))
 def testInitWithInvalidFramerate(rate):
     with pytest.raises(FramerateError):
-        tc = Timecode(rate)
+        Timecode(rate)
 
 
 def testInitWithFramerate():
@@ -116,6 +116,7 @@ def testSubFramesInvalidValue(value):
     tc = Timecode(24)
     with pytest.raises(TypeError):
         tc.sub_frames(value)
+
 
 # FixMe: Broken for 23.98; need to investigate which conversion(s) is/are off
 @pytest.mark.parametrize('rate', [r if r != '23.98' else pytest.mark.xfail(r) for r in valid_rates])

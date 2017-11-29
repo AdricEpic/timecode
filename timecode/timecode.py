@@ -233,6 +233,9 @@ class Timecode(object):
 
         return False
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __add__(self, other):
         """
         Create new Timecode object whose total frame count is the sum of this
